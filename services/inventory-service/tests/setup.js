@@ -1,0 +1,34 @@
+const { MongoMemoryReplSet } = require('mongodb-memory-server');
+const mongoose = require('mongoose');
+
+let mongod;
+
+beforeAll(async () => {
+   mongod = await MongoMemoryReplSet.create({
+      replSet: { count: 1 },
+      instanceOpts: [
+         {
+            storageEngine: 'wiredTiger', // needed to use the transactions
+         },
+      ],
+      binary: {
+         systemBinary: '/usr/bin/mongod',
+         version: '4.4.29',
+      },
+   });
+   await mongod.waitUntilRunning();
+   await mongoose.connect(mongod.getUri(), { retryWrites: false });
+});
+
+afterAll(async () => {
+   await mongoose.disconnect();
+   await mongod.stop();
+});
+
+afterEach(async () => {
+   // pulisce tutte le collection tra un test e l'altro
+   const collections = mongoose.connection.collections;
+   for (const key in collections) {
+      await collections[key].deleteMany({});
+   }
+});
