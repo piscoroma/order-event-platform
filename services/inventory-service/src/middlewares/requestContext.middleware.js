@@ -1,24 +1,15 @@
 const { runWithContext } = require('../observability/context_storage');
 const { randomUUID } = require('crypto');
 
-function createRequestContextMiddleware({ baseLogger }) {
+function requestContextMw() {
    return (req, res, next) => {
-      const requestId = req.headers['x-request-id'] || randomUUID();
+      const correlationId = req.headers['x-correlation-id'] || randomUUID();
 
-      const childLogger = baseLogger.child({
-         requestId
-      });
-
-      const context = {
-         requestId,
-         logger: childLogger
-      };
-
-      runWithContext(context, () => {
-         res.setHeader('x-request-id', requestId);
+      runWithContext({ correlationId }, () => {
+         res.setHeader('x-correlation-id', correlationId);
          next();
       });
    };
 }
 
-module.exports = createRequestContextMiddleware;
+module.exports = requestContextMw;

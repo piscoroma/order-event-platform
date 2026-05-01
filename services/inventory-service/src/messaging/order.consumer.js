@@ -1,3 +1,4 @@
+const { runWithContext, getContext } = require('../observability/context_storage');
 const { AlreadyProcessingError } = require('../errors/inventory.errors');
 
 const STREAM_NAME = 'ORDERS';
@@ -62,16 +63,20 @@ function createOrderConsumer({ natsClient, inventoryService, logger }) {
    }
 
    async function handleSafe(msg) {
-      try {
-         await handleMessage(msg);
-      } catch (err) {
-         logger.error('Fatal message handling error', {
-            error: err.message,
-            seq: msg.seq,
-         });
+      const correlationId =
+         msg.headers?.get('correlation-id') || crypto.randomUUID();
+      return runWithContext({ correlationId }, async () => {
+         try {
+            await handleMessage(msg);
+         } catch (err) {
+            logger.error('Fatal message handling error', {
+               error: err.message,
+               seq: msg.seq,
+            });
 
-         msg.nak(getBackoffMs((msg.info.redeliveryCount ?? 0) + 1));
-      }
+            msg.nak(getBackoffMs((msg.info.redeliveryCount ?? 0) + 1));
+         }
+      });
    }
 
    // -------------------------

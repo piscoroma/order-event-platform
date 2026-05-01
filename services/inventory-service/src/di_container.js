@@ -2,7 +2,6 @@ const { createContainer, asValue, asFunction, InjectionMode } = require('awilix'
 const { loadConfig } = require('./config/config');
 
 const createLogger = require('./observability/logger');
-const createLoggerAccessor = require('./observability/logger_accessor');
 const createRequestContextMw = require('./middlewares/requestContext.middleware')
 const createErrorHandlerMw = require('./middlewares/error.middleware')
 const createRequestLoggerMw = require('./middlewares/requestLogger.middleware')
@@ -27,8 +26,7 @@ container.register({
    configLog: asValue(config.logger),
 
    // logger
-   baseLogger: asFunction(createLogger).singleton(),
-   logger: asFunction(createLoggerAccessor).singleton(),
+   logger: asFunction(createLogger).singleton(),
 
    // middlewares
    requestContextMw: asFunction(createRequestContextMw).singleton(),

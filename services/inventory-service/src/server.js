@@ -32,7 +32,6 @@ async function start() {
 
       const app = createApp({ 
          inventoryRoutes: container.resolve('inventoryRoutes'),
-         requestContextMw: container.resolve('requestContextMw'),
          requestLoggerMw: container.resolve('requestLoggerMw'),
          errorHandlerMw: container.resolve('errorHandlerMw'),
       });
