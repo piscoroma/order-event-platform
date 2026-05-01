@@ -107,6 +107,10 @@ function createInventoryService({ logger }) {
       logger.debug('Order marked as failed', { orderId });
    }
 
+   async function resetProcessing(orderId) {
+      await OrderProcessingState.deleteOne({ orderId });
+   }
+
    return {
       listItems,
       getItem,
@@ -116,6 +120,7 @@ function createInventoryService({ logger }) {
       markProcessing,
       markDone,
       markFailed,
+      resetProcessing
    };
 
 }
