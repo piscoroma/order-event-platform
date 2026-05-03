@@ -1,4 +1,6 @@
-async function seedData({ Item, logger }) {
+const Item = require('../models/item.model')
+
+async function seedData({ logger }) {
    const count = await Item.countDocuments();
    if (count > 0) 
       return;
@@ -16,3 +18,4 @@ async function seedData({ Item, logger }) {
 }
 
 module.exports = { seedData };
+6

@@ -13,13 +13,12 @@ function assertEnv(name) {
 
 async function main() {
    const mongoClient = container.resolve('mongoClient');
-   const Item = container.resolve('Item');
    const logger = container.resolve('logger');
    try {
       requiredEnv.forEach(assertEnv);
 
       await mongoClient.connect();
-      await seedData({ Item, logger });
+      await seedData({ logger });
 
    } catch (err) {
       logger.error('Seed failed', err);
