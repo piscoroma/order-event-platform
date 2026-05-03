@@ -1,0 +1,37 @@
+const { buildHeaders } = require('./consumer.utils');
+
+function createOrderCancelledHandler({ js, jc, inventoryService, logger }) {
+
+   async function handle(msg, payload){
+      const { orderId, items } = payload;
+
+      const status = await inventoryService.getStatus(orderId);
+
+      switch (status) {
+         case null: // order does not exists
+         case 'failed':
+            msg.ack();
+            return;
+
+         case 'processing':
+            msg.nack(2000);
+            return;
+
+         case 'done':
+            await inventoryService.releaseItems(items);
+            await inventoryService.markCancelled(orderId);
+            await js.publish(
+               'inventory.released',
+               jc.encode({ orderId }),
+               { headers: buildHeaders() }
+            );
+            msg.ack();
+            return;
+      }
+   }
+
+   return { handle }
+}
+
+
+module.exports = { createOrderCancelledHandler }
