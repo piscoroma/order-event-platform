@@ -12,6 +12,8 @@ const orderProcessingStateSchema = new mongoose.Schema(
    { timestamps: true }
 );
 
-const OrderProcessingState = mongoose.model('OrderProcessingState', orderProcessingStateSchema);
+const OrderProcessingState = mongoose.model(
+   'OrderProcessingState', orderProcessingStateSchema, 'orderProcessingStates'
+);
 
 module.exports = OrderProcessingState;
