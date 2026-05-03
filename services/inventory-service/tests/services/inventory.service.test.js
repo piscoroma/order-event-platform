@@ -95,6 +95,106 @@ describe('reserveItems', () => {
 
 });
 
+describe('releaseItems', () => {
+
+   test('update stock after order cancelled', async () => {
+      const item = await Item.create({
+         _id: new mongoose.Types.ObjectId(),
+         name: 'Widget',
+         stock: 10,
+         price: 5,
+      });
+      let result;
+      let updated;
+
+      result = await inventoryService.reserveItems([
+         { itemId: item._id, quantity: 3 }
+      ]);
+      updated = await Item.findById(item._id);
+      expect(updated.stock).toBe(7);
+
+      result = await inventoryService.releaseItems([
+         { itemId: item._id, quantity: 3 }
+      ]);
+      updated = await Item.findById(item._id);
+      expect(updated.stock).toBe(10);
+   });
+
+   test('raise NotFoundError if item is not found', async () => {
+      const item = await Item.create({
+         _id: new mongoose.Types.ObjectId(),
+         name: 'Widget',
+         stock: 10,
+         price: 5,
+      });
+      let result;
+      let updated;
+
+      result = await inventoryService.reserveItems([
+         { itemId: item._id, quantity: 3 }
+      ]);
+      updated = await Item.findById(item._id);
+      expect(updated.stock).toBe(7);
+
+      const fakeItemId = item._id + "_fake"
+      await expect(
+         inventoryService.releaseItems([{ itemId: fakeItemId, quantity: 3 }])
+      ).rejects.toThrow(NotFoundError);
+
+      const unchanged = await Item.findById(item._id);
+      expect(unchanged.stock).toBe(7); // verify that rollback worked
+   });
+
+   test('raise ValidationError if quantity is < 1', async () => {
+      const item = await Item.create({
+         _id: new mongoose.Types.ObjectId(),
+         name: 'Widget',
+         stock: 10,
+         price: 5,
+      });
+      let result;
+      let updated;
+
+      result = await inventoryService.reserveItems([
+         { itemId: item._id, quantity: 3 }
+      ]);
+      updated = await Item.findById(item._id);
+      expect(updated.stock).toBe(7);
+
+      await expect(
+         inventoryService.releaseItems([{ itemId: item._id, quantity: -1 }])
+      ).rejects.toThrow(ValidationError);
+
+      const unchanged = await Item.findById(item._id);
+      expect(unchanged.stock).toBe(7); // verify that rollback worked
+   });
+
+   test('raise ValidationError if itemId is not passed', async () => {
+      const item = await Item.create({
+         _id: new mongoose.Types.ObjectId(),
+         name: 'Widget',
+         stock: 10,
+         price: 5,
+      });
+      let result;
+      let updated;
+
+      result = await inventoryService.reserveItems([
+         { itemId: item._id, quantity: 3 }
+      ]);
+      updated = await Item.findById(item._id);
+      expect(updated.stock).toBe(7);
+
+      await expect(
+         inventoryService.releaseItems([{ itemId: item._id, quantity: -1 }])
+      ).rejects.toThrow(ValidationError);
+      
+      const unchanged = await Item.findById(item._id);
+      expect(unchanged.stock).toBe(7); // verify that rollback worked
+   });
+
+});
+
 describe('isProcessed / markDone', () => {
 
    test('return false if order does not exist', async () => {
@@ -114,6 +214,12 @@ describe('isProcessed / markDone', () => {
       await expect(
          inventoryService.markProcessing('order-1')
       ).rejects.toThrow(AlreadyProcessingError);
+   });
+
+   test('check that an order marked as done can not be processed anymore', async () => {
+      await inventoryService.markProcessing('order-1');
+      await inventoryService.markDone('order-1');
+      expect(await inventoryService.isProcessed('order-1')).toBe(true);
    });
 
 });
