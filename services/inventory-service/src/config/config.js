@@ -9,7 +9,7 @@ function loadConfig() {
          dbName: process.env.MONGO_DB_NAME
       },
       nats: {
-         natUrl: process.env.NATS_URL || 'nats://nats.demo.svc.cluster.local:4222'
+         natsUrl: process.env.NATS_URL || 'nats://nats.demo.svc.cluster.local:4222'
       },
       logger: {
          serviceName: process.env.SERVICE_NAME,
