@@ -1,10 +1,9 @@
 function createApp({ 
-   inventoryRoutes, requestLoggerMw, errorHandlerMw 
+   inventoryRoutes, systemRoutes, requestLoggerMw, errorHandlerMw 
 }) {
    const express = require('express');
    const app = express();
 
-   const systemRoutes = require('./routes/system.routes');
    const metricsMiddleware = require('./observability/metrics.middleware');
    const requestContextMw = require('./middlewares/requestContext.middleware');
    

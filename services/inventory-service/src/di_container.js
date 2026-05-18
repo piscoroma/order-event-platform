@@ -8,7 +8,9 @@ const createRequestLoggerMw = require('./middlewares/requestLogger.middleware')
 const createMongoClient = require('./db/mongo.client');
 const createInventoryService = require('./services/inventory.service');
 const createInventoryController = require('./controllers/inventory.controller');
+const createSystemController = require('./controllers/system.controller');
 const createInventoryRoutes = require('./routes/inventory.routes');
+const createSystemRoutes = require('./routes/system.routes');
 const createNatsClient = require('./messaging/nats');
 const createOrderConsumer = require('./messaging/order.consumer');
 
@@ -36,18 +38,20 @@ container.register({
    // db
    mongoClient: asFunction(createMongoClient).singleton(),
 
+    // messaging
+   natsClient: asFunction(createNatsClient).singleton(),
+   orderConsumer: asFunction(createOrderConsumer).singleton(),
+
    // service
    inventoryService: asFunction(createInventoryService).singleton(),
 
    // controller
    inventoryController: asFunction(createInventoryController).singleton(),
+   systemController: asFunction(createSystemController).singleton(),
 
    // routes
    inventoryRoutes: asFunction(createInventoryRoutes).singleton(),
-
-   // messaging
-   natsClient: asFunction(createNatsClient).singleton(),
-   orderConsumer: asFunction(createOrderConsumer).singleton()
+   systemRoutes: asFunction(createSystemRoutes).singleton()
 
 });
 
