@@ -2,7 +2,10 @@ const mongoose = require('mongoose');
 const Item = require('../models/item.model');
 const OrderProcessingState = require('../models/order-processing-state.model');
 const { NotFoundError, InsufficientStockError, ValidationError, AlreadyProcessingError } = require('../errors/inventory.errors');
-const { stockGauge, reservationsCounter } = require('../observability/metrics')
+const {
+   inventoryReservationsTotal,
+   inventoryReleasesTotal,
+} = require('../observability/metrics');
 
 function createInventoryService({ logger }) {
 
@@ -45,7 +48,7 @@ function createInventoryService({ logger }) {
          }
 
          await session.commitTransaction();
-         reservationsCounter.inc({ status: 'success' });
+         inventoryReservationsTotal.inc({ status: 'success', reason: '' });
 
          logger.info('Stock reserved', { items: reserved, totalAmount });
 
@@ -53,9 +56,9 @@ function createInventoryService({ logger }) {
 
       } catch (err) {
          await session.abortTransaction();
-         reservationsCounter.inc({ status: 'failed' });
          logger.warn('Reservation failed', { error: err.message });
-         throw err; // rilancia — ci pensa il controller
+         inventoryReservationsTotal.inc({ status: 'failed', reason: err.name });
+         throw err;
       } finally {
          session.endSession();
       }
@@ -76,7 +79,7 @@ function createInventoryService({ logger }) {
             item.stock += quantity;
             await item.save({ session });
 
-            stockGauge.set({ item_id: item._id, item_name: item.name }, item.stock);
+            inventoryReleasesTotal.inc({ status: 'success', reason: '' });
          }
 
          await session.commitTransaction();
@@ -86,7 +89,8 @@ function createInventoryService({ logger }) {
       } catch (err) {
          await session.abortTransaction();
          logger.warn('Inventory release failed', { error: err.message });
-         throw err; // rilancia — ci pensa il controller
+         inventoryReleasesTotal.inc({ status: 'failed', reason: err.name });
+         throw err;
       } finally {
          session.endSession();
       }

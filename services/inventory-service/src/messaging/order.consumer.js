@@ -3,6 +3,11 @@ const { runWithContext } = require('../observability/context_storage');
 const { getBackoffMs } = require('./consumer.utils');
 const { createOrderCreatedHandler } = require('./order.created.handler')
 const { createOrderCancelledHandler } = require('./order.cancelled.handler')
+const {
+   natsMessagesReceivedTotal,
+   natsMessagesProcessedTotal,
+   natsMessageProcessingDuration,
+} = require('../observability/metrics');
 
 const ORDERS_STREAM = 'ORDERS'; 
 const INVENTORY_STREAM = 'INVENTORY';
@@ -100,7 +105,8 @@ function createOrderConsumer({ natsClient, inventoryService, logger }) {
          msg.headers?.get('correlation-id') || crypto.randomUUID();
       return runWithContext({ correlationId }, async () => {
          try {
-            await handleMessage(msg);
+            const result = await handleMessage(msg);
+            natsMessagesProcessedTotal.inc({ subject: msg.subject, result: result ?? 'ack' });
          } catch (err) {
             logger.error('Fatal message handling error', {
                error: err.message,
@@ -108,6 +114,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger }) {
             });
 
             msg.nak(getBackoffMs((msg.info.redeliveryCount ?? 0) + 1));
+            natsMessagesProcessedTotal.inc({ subject: msg.subject, result: 'nak' });
          }
       });
    }
@@ -117,15 +124,28 @@ function createOrderConsumer({ natsClient, inventoryService, logger }) {
    // -------------------------
    async function handleMessage(msg) {
       const payload = jc.decode(msg.data);
+
+      natsMessagesReceivedTotal.inc({ subject: msg.subject });
+      const startMs = Date.now();
+
+      let res;
       switch (msg.subject) {
          case 'order.created':
-            return orderCreatedHandler.handle(msg, payload);
+            res = await orderCreatedHandler.handle(msg, payload);
+            break;
          case 'order.cancelled':
-            return orderCancelledHandler.handle(msg, payload);
+            res = await orderCancelledHandler.handle(msg, payload);
+            break;
          default:
             logger.warn('Unknown subject, discarding', { subject: msg.subject });
             msg.ack();
+            res = 'ack'
       }
+
+      const durationSeconds = (Date.now() - startMs) / 1000;
+      natsMessageProcessingDuration.observe({ subject: msg.subject }, durationSeconds);
+      
+      return res;
    }
 
    return { start };

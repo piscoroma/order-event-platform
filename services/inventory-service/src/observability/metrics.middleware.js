@@ -1,19 +1,21 @@
 const { httpRequests, httpRequestDuration } = require('../observability/metrics');
 
-module.exports = (req, res, next) => {
-   const end = httpRequestDuration.startTimer();
+function httpMetricsMiddleware(req, res, next) {
+   const startMs = Date.now();
+
    res.on('finish', () => {
-      httpRequests.inc({
+      const durationSeconds = (Date.now() - startMs) / 1000;
+      const labels = {
          method: req.method,
-         route: req.route?.path || req.path,
+         route: req.route?.path ?? req.path,
          status: res.statusCode,
-      });
-      end({ 
-         method: req.method, 
-         route: req.route?.path || req.path, 
-         status: res.statusCode
-      });
+      };
+
+      httpRequests.inc(labels);
+      httpRequestDuration.observe(labels, durationSeconds);
    });
 
    next();
-};
+}
+
+module.exports = httpMetricsMiddleware;

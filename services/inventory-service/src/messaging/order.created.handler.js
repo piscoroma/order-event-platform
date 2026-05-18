@@ -13,7 +13,7 @@ function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {
          );
          logger.info('Pub on inventory.reservation.failed', {orderId: payload.orderId});
          msg.ack();
-         return;
+         return 'ack';
       }
       
       const orderId = payload.orderId;
@@ -23,7 +23,7 @@ function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {
       if (await inventoryService.isProcessed(orderId)) {
          logger.info('Order already processed, skipping message', {orderId});
          msg.ack();
-         return;
+         return 'ack';
       }
 
       try {
@@ -32,7 +32,7 @@ function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {
          if (err instanceof AlreadyProcessingError) {
             logger.info('Order already being processed, skipping message', {orderId});
             msg.ack();
-            return;
+            return 'ack';
          }
          throw err;
       }
@@ -51,6 +51,7 @@ function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {
          await inventoryService.markDone(orderId);
 
          msg.ack();
+         return 'ack'
 
       } catch (err) {
          const retryable =
@@ -69,7 +70,7 @@ function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {
             logger.info('Pub on inventory.reservation.failed', {orderId});
             await inventoryService.markFailed(orderId);
             msg.ack();
-            return;
+            return 'ack'
          }
 
          // max retry reached, send DLQ
@@ -78,12 +79,13 @@ function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {
             logger.info('Pub on inventory.dlq', {orderId});
             await inventoryService.markFailed(orderId);
             msg.ack();
-            return;
+            return 'ack';
          }
 
          // delegate retry to JetStream
          await inventoryService.resetProcessing(orderId);
          msg.nak(getBackoffMs(attempt));
+         return 'nak'
       }
    }
 
