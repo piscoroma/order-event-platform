@@ -10,7 +10,11 @@ function createNatsClient({ logger, configNats }) {
    async function connect_() {
       const url = natsUrl;
 
-      nc = await connect({ servers: url });
+      try{
+         nc = await connect({servers: url});
+      }catch(err){
+         throw new Error(`NATS connection failed: ${url}. Error: ${err.message}`);
+      }
       js = nc.jetstream();
 
       logger.info('NATS connected', { url });
@@ -57,7 +61,19 @@ function createNatsClient({ logger, configNats }) {
       }
    }
 
-   return { connect: connect_, ensureStream, getJs, getNc, close, jc, sc };
+   function isConnected() {
+      return nc !== null && !nc.isClosed() && !nc.isDraining();
+   }
+
+   return { 
+      connect: connect_, 
+      ensureStream, 
+      getJs, 
+      getNc, 
+      close, 
+      isConnected,
+      jc, 
+      sc };
 }
 
 module.exports = createNatsClient;
