@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
-const Item = require('../../src/models/item.model');
-const createInventoryService = require('../../src/services/inventory.service');
-const { NotFoundError, InsufficientStockError, ValidationError, AlreadyProcessingError } = require('../../src/errors/inventory.errors');
-const { mockLogger } = require('../utils/mock_logger')
+const Item = require('../src/models/item.model');
+const createInventoryService = require('../src/services/inventory.service');
+const { NotFoundError, InsufficientStockError, ValidationError, AlreadyProcessingError } = require('../src/errors/inventory.errors');
+const { mockLogger } = require('./utils/mock_logger')
 
 const mockInventoryMetrics = {
    inventoryReservationsTotal: { inc: jest.fn() },
