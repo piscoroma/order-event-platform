@@ -1,4 +1,5 @@
-const { buildHeaders, getBackoffMs } = require('./consumer.utils');
+const { buildHeaders, getBackoffMs } = require('@order-event-platform/shared/messaging/consumer.utils');
+
 const { AlreadyProcessingError } = require('../errors/inventory.errors');
 
 function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {

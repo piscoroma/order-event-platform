@@ -1,5 +1,6 @@
 const express = require('express');
-const requireRoleMw = require('../middlewares/requireRole.middleware');
+
+const requireRoleMw = require('@order-event-platform/shared/middlewares/requireRole.middleware');
 
 function createInventoryRoutes({ inventoryController }) {
 

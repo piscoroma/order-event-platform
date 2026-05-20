@@ -1,4 +1,5 @@
 const winston = require('winston');
+
 const { getContext } = require('./context_storage');
 
 function createLogger({ configLog }) {

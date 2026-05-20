@@ -1,0 +1,41 @@
+{
+   "version": "0.2.0",
+   "configurations": [
+      {
+         "type": "node",
+         "request": "launch",
+         "name": "inventory-service",
+         "skipFiles": ["<node_internals>/**"],
+         "program": "${workspaceFolder}/services/inventory-service/src/server.js",
+         "envFile": "${workspaceFolder}/services/inventory-service/.env",
+         "cwd": "${workspaceFolder}/services/inventory-service",
+         "outputCapture": "std"
+      },
+      {
+         "type": "node",
+         "request": "launch",
+         "name": "auth-service",
+         "skipFiles": ["<node_internals>/**"],
+         "program": "${workspaceFolder}/services/auth-service/src/server.js",
+         "envFile": "${workspaceFolder}/services/auth-service/.env",
+         "cwd": "${workspaceFolder}/services/auth-service",
+         "outputCapture": "std"
+      },
+      {
+         "type": "node",
+         "request": "launch",
+         "name": "order-service",
+         "skipFiles": ["<node_internals>/**"],
+         "program": "${workspaceFolder}/services/order-service/src/server.js",
+         "envFile": "${workspaceFolder}/services/order-service/.env",
+         "cwd": "${workspaceFolder}/services/order-service",
+         "outputCapture": "std"
+      }
+   ],
+   "compounds": [
+      {
+         "name": "All services",
+         "configurations": ["inventory-service", "auth-service", "order-service"]
+      }
+   ]
+}

@@ -1,13 +1,14 @@
 const mongoose = require('mongoose');
+
+const { NotFoundError, ValidationError } = require('@order-event-platform/shared/errors/base.errors');
+
 const Item = require('../models/item.model');
 const OrderProcessingState = require('../models/order-processing-state.model');
-const { NotFoundError, InsufficientStockError, ValidationError, AlreadyProcessingError } = require('../errors/inventory.errors');
-const {
-   inventoryReservationsTotal,
-   inventoryReleasesTotal,
-} = require('../observability/metrics');
+const { InsufficientStockError, AlreadyProcessingError } = require('../errors/inventory.errors');
 
-function createInventoryService({ logger }) {
+function createInventoryService({ logger, inventoryMetrics}) {
+
+   const {inventoryReservationsTotal, inventoryReleasesTotal} = inventoryMetrics;
 
    async function listItems() {
       return Item.find();
@@ -40,8 +41,6 @@ function createInventoryService({ logger }) {
 
             item.stock -= quantity;
             await item.save({ session });
-
-            stockGauge.set({ item_id: item._id, item_name: item.name }, item.stock);
 
             totalAmount += item.price * quantity;
             reserved.push({ itemId, name: item.name, quantity, unitPrice: item.price });
@@ -100,7 +99,6 @@ function createInventoryService({ logger }) {
    async function updateItemStock(id, stock) {
       const item = await Item.findByIdAndUpdate(id, { stock }, { new: true });
       if (!item) throw new NotFoundError('Item', id);
-      stockGauge.set({ item_id: item._id, item_name: item.name }, item.stock);
       logger.info('Stock updated', { itemId: item._id, newStock: item.stock });
       return item;
    }

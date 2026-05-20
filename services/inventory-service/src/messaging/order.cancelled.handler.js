@@ -1,4 +1,4 @@
-const { buildHeaders } = require('./consumer.utils');
+const { buildHeaders } = require('@order-event-platform/shared/messaging/consumer.utils');
 
 function createOrderCancelledHandler({ js, jc, inventoryService, logger }) {
 

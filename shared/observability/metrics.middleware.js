@@ -1,4 +1,4 @@
-const { httpRequests, httpRequestDuration } = require('../observability/metrics');
+const { httpRequests, httpRequestDuration } = require('./metrics');
 
 function httpMetricsMiddleware(req, res, next) {
    const startMs = Date.now();

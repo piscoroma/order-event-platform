@@ -5,7 +5,15 @@ const createInventoryService = require('../../src/services/inventory.service');
 const { NotFoundError, InsufficientStockError, ValidationError, AlreadyProcessingError } = require('../../src/errors/inventory.errors');
 const { mockLogger } = require('../utils/mock_logger')
 
-const inventoryService = createInventoryService({ logger: mockLogger });
+const mockInventoryMetrics = {
+   inventoryReservationsTotal: { inc: jest.fn() },
+   inventoryReleasesTotal: { inc: jest.fn() },
+};
+
+const inventoryService = createInventoryService({ 
+   logger: mockLogger,
+   inventoryMetrics: mockInventoryMetrics,
+});
 
 describe('reserveItems', () => {
 

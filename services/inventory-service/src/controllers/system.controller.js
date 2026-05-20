@@ -1,7 +1,6 @@
 const mongoose = require('mongoose');
-const metrics = require('../observability/metrics');
 
-function createSystemController({ natsClient }) {
+function createSystemController({ natsClient, metrics }) {
 
    function health(req, res) {
       res.json({ status: 'ok' });

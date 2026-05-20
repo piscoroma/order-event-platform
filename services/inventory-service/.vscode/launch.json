@@ -12,13 +12,7 @@
             "<node_internals>/**"
          ],
          "program": "${workspaceFolder}/src/server.js",
-         "args": [
-            //"--help"
-            //"--config",
-            //"${workspaceFolder}/etc/config-local-dev.json5"
-            //"${workspaceFolder}/etc/config-test.json5"
-            //"${workspaceFolder}/etc/config-prod.json5"
-         ],
+         "args": [],
          "outputCapture": "std"
       }
    ]

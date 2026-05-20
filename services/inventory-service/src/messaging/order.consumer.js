@@ -1,13 +1,10 @@
 const crypto = require('crypto');
-const { runWithContext } = require('../observability/context_storage');
-const { getBackoffMs } = require('./consumer.utils');
+
+const { runWithContext } = require('@order-event-platform/shared/observability/context_storage');
+const { getBackoffMs } = require('@order-event-platform/shared/messaging/consumer.utils');
+
 const { createOrderCreatedHandler } = require('./order.created.handler')
 const { createOrderCancelledHandler } = require('./order.cancelled.handler')
-const {
-   natsMessagesReceivedTotal,
-   natsMessagesProcessedTotal,
-   natsMessageProcessingDuration,
-} = require('../observability/metrics');
 
 const ORDERS_STREAM = 'ORDERS'; 
 const INVENTORY_STREAM = 'INVENTORY';
@@ -15,7 +12,7 @@ const CONSUMER_NAME = 'inventory-service';
 
 const MAX_RETRIES = 5;
 
-function createOrderConsumer({ natsClient, inventoryService, logger }) {
+function createOrderConsumer({ natsClient, inventoryService, logger, metrics }) {
 
    let nc = null;
    let js = null;
@@ -106,7 +103,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger }) {
       return runWithContext({ correlationId }, async () => {
          try {
             const result = await handleMessage(msg);
-            natsMessagesProcessedTotal.inc({ subject: msg.subject, result: result ?? 'ack' });
+            metrics.natsMessagesProcessedTotal.inc({ subject: msg.subject, result: result ?? 'ack' });
          } catch (err) {
             logger.error('Fatal message handling error', {
                error: err.message,
@@ -114,7 +111,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger }) {
             });
 
             msg.nak(getBackoffMs((msg.info.redeliveryCount ?? 0) + 1));
-            natsMessagesProcessedTotal.inc({ subject: msg.subject, result: 'nak' });
+            metrics.natsMessagesProcessedTotal.inc({ subject: msg.subject, result: 'nak' });
          }
       });
    }
@@ -125,7 +122,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger }) {
    async function handleMessage(msg) {
       const payload = jc.decode(msg.data);
 
-      natsMessagesReceivedTotal.inc({ subject: msg.subject });
+      metrics.natsMessagesReceivedTotal.inc({ subject: msg.subject });
       const startMs = Date.now();
 
       let res;
@@ -143,7 +140,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger }) {
       }
 
       const durationSeconds = (Date.now() - startMs) / 1000;
-      natsMessageProcessingDuration.observe({ subject: msg.subject }, durationSeconds);
+      metrics.natsMessageProcessingDuration.observe({ subject: msg.subject }, durationSeconds);
       
       return res;
    }

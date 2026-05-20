@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { headers } = require('nats');
+
 const { getContext } = require('../observability/context_storage');
 
 function getBackoffMs(attempt) {
