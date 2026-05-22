@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-function createSystemController({ natsClient, metrics }) {
+function createSystemController({ natsClient, register }) {
 
    function health(req, res) {
       res.json({ status: 'ok' });
@@ -20,8 +20,8 @@ function createSystemController({ natsClient, metrics }) {
    };
 
    async function getMetrics(req, res) {
-      res.set('Content-Type', metrics.register.contentType);
-      res.end(await metrics.register.metrics());
+      res.set('Content-Type', register.contentType);
+      res.end(await register.metrics());
    };
 
    return { 

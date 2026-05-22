@@ -35,6 +35,7 @@ async function start() {
          systemRoutes: container.resolve('systemRoutes'),
          requestLoggerMw: container.resolve('requestLoggerMw'),
          errorHandlerMw: container.resolve('errorHandlerMw'),
+         httpMetricsMw: container.resolve('httpMetricsMw'),
       });
 
       server = app.listen(PORT, () => {

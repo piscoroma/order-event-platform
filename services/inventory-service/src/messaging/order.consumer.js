@@ -12,7 +12,7 @@ const CONSUMER_NAME = 'inventory-service';
 
 const MAX_RETRIES = 5;
 
-function createOrderConsumer({ natsClient, inventoryService, logger, metrics }) {
+function createOrderConsumer({ natsClient, inventoryService, logger, natsMetrics }) {
 
    let nc = null;
    let js = null;
@@ -103,7 +103,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger, metrics }) 
       return runWithContext({ correlationId }, async () => {
          try {
             const result = await handleMessage(msg);
-            metrics.natsMessagesProcessedTotal.inc({ subject: msg.subject, result: result ?? 'ack' });
+            natsMetrics.natsMessagesProcessedTotal.inc({ subject: msg.subject, result: result ?? 'ack' });
          } catch (err) {
             logger.error('Fatal message handling error', {
                error: err.message,
@@ -111,7 +111,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger, metrics }) 
             });
 
             msg.nak(getBackoffMs((msg.info.redeliveryCount ?? 0) + 1));
-            metrics.natsMessagesProcessedTotal.inc({ subject: msg.subject, result: 'nak' });
+            natsMetrics.natsMessagesProcessedTotal.inc({ subject: msg.subject, result: 'nak' });
          }
       });
    }
@@ -122,7 +122,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger, metrics }) 
    async function handleMessage(msg) {
       const payload = jc.decode(msg.data);
 
-      metrics.natsMessagesReceivedTotal.inc({ subject: msg.subject });
+      natsMetrics.natsMessagesReceivedTotal.inc({ subject: msg.subject });
       const startMs = Date.now();
 
       let res;
@@ -140,7 +140,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger, metrics }) 
       }
 
       const durationSeconds = (Date.now() - startMs) / 1000;
-      metrics.natsMessageProcessingDuration.observe({ subject: msg.subject }, durationSeconds);
+      natsMetrics.natsMessageProcessingDuration.observe({ subject: msg.subject }, durationSeconds);
       
       return res;
    }

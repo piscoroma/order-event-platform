@@ -1,8 +1,6 @@
 const client = require('prom-client');
 
-function createInventoryMetrics({ metrics }) {
-
-   const { register } = metrics;
+function createInventoryMetrics({ register }) {
 
    const inventoryReservationsTotal = new client.Counter({
       name: 'inventory_reservations_total',

@@ -1,12 +1,15 @@
 const { createContainer, asValue, asFunction, InjectionMode } = require('awilix');
 
 const createLogger = require('@order-event-platform/shared/observability/logger');
-const createMetrics = require('@order-event-platform/shared/observability/metrics');
+const createRegistry = require('@order-event-platform/shared/observability/registry');
+const createHttpMetrics = require('@order-event-platform/shared/observability/http.metrics');
+const createNatsMetrics = require('@order-event-platform/shared/observability/nats.metrics');
 const createMongoClient = require('@order-event-platform/shared/db/mongo.client');
 const createNatsClient = require('@order-event-platform/shared/messaging/nats');
 const createRequestContextMw = require('@order-event-platform/shared/middlewares/requestContext.middleware')
 const createErrorHandlerMw = require('@order-event-platform/shared/middlewares/error.middleware')
 const createRequestLoggerMw = require('@order-event-platform/shared/middlewares/requestLogger.middleware')
+const createHttpMetricsMw = require('@order-event-platform/shared/middlewares/metrics.middleware')
 
 const { loadConfig } = require('./config/config');
 const createInventoryMetrics = require('./observability/inventory.metrics')
@@ -22,7 +25,6 @@ const container = createContainer({
 });
 
 const config = loadConfig();
-const metrics = createMetrics('inventory-service');
 
 container.register({
    // config
@@ -31,17 +33,22 @@ container.register({
    configNats: asValue(config.nats),
    configLog: asValue(config.logger),
 
+   // registry
+   register: asValue(createRegistry('inventory-service')),
+
    // logger
    logger: asFunction(createLogger).singleton(),
 
    // metrics
-   metrics: asValue(metrics),
+   httpMetrics: asFunction(createHttpMetrics).singleton(),
+   natsMetrics: asFunction(createNatsMetrics).singleton(),
    inventoryMetrics: asFunction(createInventoryMetrics).singleton(),
 
    // middlewares
    requestContextMw: asFunction(createRequestContextMw).singleton(),
    errorHandlerMw: asFunction(createErrorHandlerMw).singleton(),
    requestLoggerMw: asFunction(createRequestLoggerMw).singleton(),
+   httpMetricsMw: asFunction(createHttpMetricsMw).singleton(),
 
    // db
    mongoClient: asFunction(createMongoClient).singleton(),
