@@ -1,5 +1,6 @@
 function loadConfig() {
    return {
+      serviceName: process.env.SERVICE_NAME,
       server: {
          port: process.env.SERVER_PORT || 3010,
          shutdownTimeoutMs: process.env.SHUTDOWN_TIMEOUT || 25000

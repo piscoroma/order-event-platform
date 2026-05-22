@@ -34,7 +34,7 @@ container.register({
    configLog: asValue(config.logger),
 
    // registry
-   register: asValue(createRegistry('inventory-service')),
+   register: asValue(createRegistry(config.serviceName)),
 
    // logger
    logger: asFunction(createLogger).singleton(),
