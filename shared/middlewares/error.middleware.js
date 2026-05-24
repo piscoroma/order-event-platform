@@ -1,15 +1,14 @@
 const errorHandler = ({ logger }) => (err, req, res, next) => {
-   const status = err.statusCode ?? 500;
+   const statusCode = err.statusCode ?? 500
+   const message = statusCode === 500 ? 'Internal Server Error' : err.message;
 
-   if (status === 500) {
+   if (statusCode === 500) {
       logger.error(err.stack);
    } else {
       logger.warn(err.message, { name: err.name });
    }
 
-   res.status(status).json({
-      error: status === 500 ? 'Internal Server Error' : err.message,
-   });
+   res.status(statusCode).json({error: message});
 
 };
 
