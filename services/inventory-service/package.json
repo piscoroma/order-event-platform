@@ -11,17 +11,7 @@
       "test:watch": "jest --watch"
    },
    "dependencies": {
-      "@order-event-platform/shared": "*",
-      "awilix": "^10.0.0",
-      "dotenv": "^17.3.1",
-      "express": "^4.18.2",
-      "mongoose": "^8.0.0",
-      "prom-client": "^15.1.0"
-   },
-   "devDependencies": {
-      "jest": "^29.7.0",
-      "mongodb-memory-server": "^11.0.1",
-      "nodemon": "^3.1.14"
+      "@order-event-platform/shared": "*"
    },
    "jest": {
       "testMatch": [
