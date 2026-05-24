@@ -16,7 +16,27 @@ class ValidationError extends Error {
    }
 }
 
+class UnauthorizedError extends Error {
+   constructor(message) {
+      super(message);
+      this.name = 'UnauthorizedError';
+      this.statusCode = 401;
+      this.retryable = false;
+   }
+}
+
+class ConflictError extends Error {
+   constructor(message) {
+      super(message);
+      this.name = 'ConflictError';
+      this.statusCode = 409;
+      this.retryable = false;
+   }
+}
+
 module.exports = {
    NotFoundError,
-   ValidationError
+   ValidationError,
+   UnauthorizedError,
+   ConflictError
 };
