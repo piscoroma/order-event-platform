@@ -9,8 +9,8 @@
    "scripts": {
       "test": "npm run test --workspaces --if-present",
       "build": "npm run build --workspaces --if-present",
-      "dev:auth": "npm run dev --workspace=auth-service",
-      "dev:inventory": "npm run dev --workspace=inventory-service",
+      "dev:auth": "npm run dev --workspace=@order-event-platform/auth-service",
+      "dev:inventory": "npm run dev --workspace=@order-event-platform/inventory-service",
       "lint": "eslint ."
    },
    "devDependencies": {
