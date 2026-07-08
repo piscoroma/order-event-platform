@@ -112,16 +112,15 @@ describe('releaseItems', () => {
          stock: 10,
          price: 5,
       });
-      let result;
       let updated;
 
-      result = await inventoryService.reserveItems([
+      await inventoryService.reserveItems([
          { itemId: item._id, quantity: 3 }
       ]);
       updated = await Item.findById(item._id);
       expect(updated.stock).toBe(7);
 
-      result = await inventoryService.releaseItems([
+      await inventoryService.releaseItems([
          { itemId: item._id, quantity: 3 }
       ]);
       updated = await Item.findById(item._id);
@@ -135,10 +134,9 @@ describe('releaseItems', () => {
          stock: 10,
          price: 5,
       });
-      let result;
       let updated;
 
-      result = await inventoryService.reserveItems([
+      await inventoryService.reserveItems([
          { itemId: item._id, quantity: 3 }
       ]);
       updated = await Item.findById(item._id);
@@ -160,10 +158,9 @@ describe('releaseItems', () => {
          stock: 10,
          price: 5,
       });
-      let result;
       let updated;
 
-      result = await inventoryService.reserveItems([
+      await inventoryService.reserveItems([
          { itemId: item._id, quantity: 3 }
       ]);
       updated = await Item.findById(item._id);
@@ -184,10 +181,9 @@ describe('releaseItems', () => {
          stock: 10,
          price: 5,
       });
-      let result;
       let updated;
 
-      result = await inventoryService.reserveItems([
+      await inventoryService.reserveItems([
          { itemId: item._id, quantity: 3 }
       ]);
       updated = await Item.findById(item._id);

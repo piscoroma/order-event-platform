@@ -13,7 +13,7 @@ function createNatsClient({ logger, configNats }) {
       try{
          nc = await connect({servers: url});
       }catch(err){
-         throw new Error(`NATS connection failed: ${url}. Error: ${err.message}`);
+         throw new Error(`NATS connection failed: ${url}.`, { cause: err });
       }
       js = nc.jetstream();
 

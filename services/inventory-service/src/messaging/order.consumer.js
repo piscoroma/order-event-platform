@@ -39,15 +39,15 @@ function createOrderConsumer({ natsClient, inventoryService, logger, natsMetrics
       try {
          await jsm.streams.info(ORDERS_STREAM);
          logger.info('Stream found,', { stream: ORDERS_STREAM });
-      } catch (_) {
-         throw new Error(`Stream ${ORDERS_STREAM} does not exist`);
+      } catch (err) {
+         throw new Error(`Stream ${ORDERS_STREAM} does not exist`, { cause: err });
       }
 
       // check that stream to publish exists. Create it if not exists
       try {
          await jsm.streams.info(INVENTORY_STREAM);
          logger.info('Stream found', { stream: INVENTORY_STREAM });
-      } catch (_) {
+      } catch {
          await jsm.streams.add({
             name: INVENTORY_STREAM,
             subjects: ['inventory.>'],
@@ -61,7 +61,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger, natsMetrics
       try {
          await jsm.consumers.info(ORDERS_STREAM, CONSUMER_NAME);
          logger.info('Consumer already exists', { consumer: CONSUMER_NAME });
-      } catch (_) {
+      } catch {
          await jsm.consumers.add(ORDERS_STREAM, {
             durable_name: CONSUMER_NAME,
             filter_subject: 'order.*',

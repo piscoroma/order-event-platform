@@ -2,6 +2,8 @@ const { buildHeaders, getBackoffMs } = require('@order-event-platform/shared/mes
 
 const { AlreadyProcessingError } = require('../errors/inventory.errors');
 
+const MAX_RETRIES = 3;
+
 function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {
 
    async function handle(msg, payload){

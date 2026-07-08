@@ -1,5 +1,4 @@
 require('dotenv').config();
-const mongoose = require('mongoose');
 
 const container = require('../src/di_container');
 const { seedData } = require('../src/db/seed');
