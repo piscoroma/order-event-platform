@@ -1,5 +1,5 @@
 {
-   "name": "auth-service",
+   "name": "@order-event-platform/auth-service",
    "version": "1.0.0",
    "type": "commonjs",
    "main": "src/server.js",
@@ -12,8 +12,17 @@
    },
    "dependencies": {
       "@order-event-platform/shared": "*",
+      "awilix": "^13.0.3",
       "bcrypt": "^6.0.0",
-      "jsonwebtoken": "^9.0.3" 
+      "dotenv": "^17.4.2",
+      "express": "^5.2.1",
+      "jsonwebtoken": "^9.0.3",
+      "mongoose": "^9.6.2"
+   },
+   "devDependencies": {
+      "jest": "^29.7.0",
+      "mongodb-memory-server": "^11.0.1",
+      "nodemon": "^3.1.14"
    },
    "jest": {
       "testMatch": [
