@@ -73,5 +73,24 @@ jobs:
         uses: actions/checkout@v6
 
 
-      - name: Build placeholder
-        run: echo "Docker build will be here"
+      - name: Build inventory-service image
+        run: |
+          docker build \
+            -f docker/Dockerfile \
+            --build-arg SERVICE_NAME=inventory-service \
+            --build-arg SERVICE_PORT=3010 \
+            -t inventory-service:test \
+            .
+
+
+      - name: Build auth-service image
+        run: |
+          docker build \
+            -f docker/Dockerfile \
+            --build-arg SERVICE_NAME=auth-service \
+            --build-arg SERVICE_PORT=3011 \
+            -t auth-service:test \
+            .
+            
+            
+            
