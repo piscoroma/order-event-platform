@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const { headers } = require('nats');
+const { headers } = require('@nats-io/transport-node');
 
 const { getContext } = require('../observability/context_storage');
 

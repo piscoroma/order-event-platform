@@ -1,4 +1,4 @@
-const { connect, StringCodec, JSONCodec } = require('nats');
+const { connect, StringCodec, JSONCodec } = require('@nats-io/transport-node');
 
 function createNatsClient({ logger, configNats }) {
    const { natsUrl } = configNats;
