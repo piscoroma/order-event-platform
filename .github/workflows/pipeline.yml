@@ -1,5 +1,6 @@
 name: CI/CD
 
+
 on:
 #  push:
 #    branches:
@@ -7,17 +8,14 @@ on:
 
   workflow_dispatch:
 
+
 jobs:
 
   lint:
-
     runs-on: ubuntu-latest
-
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v6
-
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -25,24 +23,17 @@ jobs:
           node-version: 22
           cache: npm
 
-
       - name: Install dependencies
         run: npm ci
-
 
       - name: Run lint
         run: npm run lint
-        
-        
+       
   test:
-
     runs-on: ubuntu-latest
-
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v6
-
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -50,47 +41,68 @@ jobs:
           node-version: 22
           cache: npm
 
-
       - name: Install dependencies
         run: npm ci
-
 
       - name: Run tests
         run: npm test
         
-        
-  build:
-
+  changes:
     needs:
       - lint
       - test
-
     runs-on: ubuntu-latest
-
+    outputs:
+      services: ${{ steps.filter.outputs.changes }}
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v6
-
-
-      - name: Build inventory-service image
+        with:
+          fetch-depth: 0
+        
+      - name: Detect changed services
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          list-files: shell
+          filters: |
+            inventory-service:
+              - 'services/inventory-service/**'
+              - 'shared/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'docker/**'
+              
+            auth-service:
+              - 'services/auth-service/**'
+              - 'shared/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'docker/**'  
+  
+  build:
+    needs: changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: inventory-service
+            port: 3010
+          - service: auth-service
+            port: 3011
+            
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+      
+      - name: Build Docker image
+        if: contains(fromJson(needs.changes.outputs.services), matrix.service)
         run: |
           docker build \
             -f docker/Dockerfile \
-            --build-arg SERVICE_NAME=inventory-service \
-            --build-arg SERVICE_PORT=3010 \
-            -t inventory-service:test \
+            --build-arg SERVICE_NAME=${{ matrix.service }} \
+            --build-arg SERVICE_PORT=${{ matrix.port }} \
+            -t ${{ matrix.service }}:test \
             .
-
-
-      - name: Build auth-service image
-        run: |
-          docker build \
-            -f docker/Dockerfile \
-            --build-arg SERVICE_NAME=auth-service \
-            --build-arg SERVICE_PORT=3011 \
-            -t auth-service:test \
-            .
-            
-            
+           
             
