@@ -87,9 +87,7 @@ jobs:
       matrix:
         include:
           - service: inventory-service
-            port: 3010
           - service: auth-service
-            port: 3011
             
     steps:
       - name: Checkout repository
@@ -101,7 +99,6 @@ jobs:
           docker build \
             -f docker/Dockerfile \
             --build-arg SERVICE_NAME=${{ matrix.service }} \
-            --build-arg SERVICE_PORT=${{ matrix.port }} \
             -t ${{ matrix.service }}:test \
             .
            

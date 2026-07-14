@@ -24,11 +24,8 @@ RUN npm ci --omit=dev --workspace=services/${SERVICE_NAME}
 FROM node:22-alpine
 
 ARG SERVICE_NAME
-ARG SERVICE_PORT
 
 RUN test -n "$SERVICE_NAME"
-RUN test -n "$SERVICE_PORT"
-
 ENV NODE_ENV=production
 
 WORKDIR /app
@@ -41,7 +38,5 @@ COPY shared ./shared
 COPY services/${SERVICE_NAME} ./services/${SERVICE_NAME}
 
 WORKDIR /app/services/${SERVICE_NAME}
-
-EXPOSE ${SERVICE_PORT}
 
 CMD ["npm", "start"]
