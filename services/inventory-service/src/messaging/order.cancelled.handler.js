@@ -1,6 +1,6 @@
 const { buildHeaders } = require('@order-event-platform/shared/messaging/consumer.utils');
 
-function createOrderCancelledHandler({ js, jc, inventoryService, logger }) {
+function createOrderCancelledHandler({ js, inventoryService, logger }) {
 
    async function handle(msg, payload){
       const { orderId, items } = payload;
@@ -22,7 +22,7 @@ function createOrderCancelledHandler({ js, jc, inventoryService, logger }) {
             await inventoryService.markCancelled(orderId);
             await js.publish(
                'inventory.released',
-               jc.encode({ orderId }),
+               JSON.stringify({ orderId }),
                { headers: buildHeaders() }
             );
             msg.ack();

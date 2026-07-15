@@ -1,11 +1,11 @@
-const { connect, StringCodec, JSONCodec } = require('@nats-io/transport-node');
+const { connect } = require('@nats-io/transport-node');
+const { jetstream, jetstreamManager } = require('@nats-io/jetstream');
 
 function createNatsClient({ logger, configNats }) {
    const { natsUrl } = configNats;
    let nc = null;
    let js = null;
-   const jc = JSONCodec();
-   const sc = StringCodec();
+   let jsm = null;
 
    async function connect_() {
       const url = natsUrl;
@@ -15,7 +15,8 @@ function createNatsClient({ logger, configNats }) {
       }catch(err){
          throw new Error(`NATS connection failed: ${url}.`, { cause: err });
       }
-      js = nc.jetstream();
+      js = jetstream(nc);
+      jsm = await jetstreamManager(nc);
 
       logger.info('NATS connected', { url });
 
@@ -29,7 +30,7 @@ function createNatsClient({ logger, configNats }) {
    }
 
    async function ensureStream(streamName, subjects) {
-      const jsm = await nc.jetstreamManager();
+      const jsm = await jetstreamManager(nc);
       try {
          await jsm.streams.info(streamName);
          logger.info('NATS stream already exists', { streamName });
@@ -48,6 +49,11 @@ function createNatsClient({ logger, configNats }) {
    function getJs() {
       if (!js) throw new Error('NATS JetStream not initialized');
       return js;
+   }
+
+   function getJsm() {
+      if (!jsm) throw new Error('NATS JetStreamManager not initialized');
+      return jsm;
    }
 
    function getNc() {
@@ -69,11 +75,11 @@ function createNatsClient({ logger, configNats }) {
       connect: connect_, 
       ensureStream, 
       getJs, 
+      getJsm,
       getNc, 
       close, 
-      isConnected,
-      jc, 
-      sc };
+      isConnected
+   };
 }
 
 module.exports = createNatsClient;

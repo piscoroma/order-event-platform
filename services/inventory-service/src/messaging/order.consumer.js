@@ -16,7 +16,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger, natsMetrics
 
    let nc = null;
    let js = null;
-   let jc = null;
+   let jsm = null;
    let orderCreatedHandler = null;
    let orderCancelledHandler = null;
 
@@ -26,14 +26,9 @@ function createOrderConsumer({ natsClient, inventoryService, logger, natsMetrics
    async function start() {
       nc = natsClient.getNc();
       js = natsClient.getJs();
-      jc = natsClient.jc;
-      orderCreatedHandler = createOrderCreatedHandler({ js, jc, inventoryService, logger});
-      orderCancelledHandler = createOrderCancelledHandler({ js, jc, inventoryService, logger});
-
-      if (typeof nc.jetstreamManager !== 'function') {
-         throw new Error('JetStream not supported by server/client');
-      }
-      const jsm = await nc.jetstreamManager();
+      jsm = natsClient.getJsm();
+      orderCreatedHandler = createOrderCreatedHandler({ js, inventoryService, logger});
+      orderCancelledHandler = createOrderCancelledHandler({ js, inventoryService, logger});
 
       // check that stream to consume exists
       try {
@@ -120,7 +115,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger, natsMetrics
    // CORE LOGIC
    // -------------------------
    async function handleMessage(msg) {
-      const payload = jc.decode(msg.data);
+      const payload = msg.json();
 
       natsMetrics.natsMessagesReceivedTotal.inc({ subject: msg.subject });
       const startMs = Date.now();

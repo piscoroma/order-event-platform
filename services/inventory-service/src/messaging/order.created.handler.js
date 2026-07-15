@@ -4,14 +4,14 @@ const { AlreadyProcessingError } = require('../errors/inventory.errors');
 
 const MAX_RETRIES = 3;
 
-function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {
+function createOrderCreatedHandler({ js, inventoryService, logger }) {
 
    async function handle(msg, payload){
       if (!payload?.orderId || !Array.isArray(payload?.items) || payload.items.length === 0) {
          logger.warn('Invalid payload, discarding message', { payload, orderId: payload.orderId });
          await js.publish(
             'inventory.reservation.failed',
-            jc.encode({ reason: "Invalid Payload", payload }),
+            JSON.stringify({ reason: "Invalid Payload", payload }),
             { headers: buildHeaders() }
          );
          logger.info('Pub on inventory.reservation.failed', {orderId: payload.orderId});
@@ -46,7 +46,7 @@ function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {
 
          await js.publish(
             'inventory.reserved',
-            jc.encode({ orderId, ...result }),
+            JSON.stringify({ orderId, ...result }),
             { headers: buildHeaders() }
          );
          logger.info('Pub on inventory.reserved', {orderId});
@@ -67,7 +67,7 @@ function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {
             // Business failure
             await js.publish(
                'inventory.reservation.failed',
-               jc.encode({ orderId, reason: err.message }),
+               JSON.stringify({ orderId, reason: err.message }),
                { headers: buildHeaders() }
             );
             logger.info('Pub on inventory.reservation.failed', {orderId});
@@ -95,7 +95,7 @@ function createOrderCreatedHandler({ js, jc, inventoryService, logger }) {
    async function publishDLQ(msg, payload, err, attempt) {
       await js.publish(
          'inventory.dlq',
-         jc.encode({
+         JSON.stringify({
             orderId: payload.orderId,
             reason: err.message,
             attempt,
