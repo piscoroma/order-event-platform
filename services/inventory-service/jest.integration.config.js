@@ -1,0 +1,4 @@
+module.exports = {
+   testMatch: ['**/tests/**/*.integration.test.js'],
+   testTimeout: 30000
+};
