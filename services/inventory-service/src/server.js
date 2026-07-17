@@ -77,7 +77,7 @@ async function start() {
          // Stop consumer - no nuovi messaggi
          await shutdownComponent(
             'Order consumer', 
-            () => orderConsumer.stop?.(), 
+            () => orderConsumer.stop(), 
             logger
          );
 

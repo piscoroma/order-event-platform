@@ -19,6 +19,8 @@ function createOrderConsumer({ natsClient, inventoryService, logger, natsMetrics
    let jsm = null;
    let orderCreatedHandler = null;
    let orderCancelledHandler = null;
+   let stopped = false;
+   let currentConsumer = null;
 
    // -------------------------
    // BOOTSTRAP
@@ -69,14 +71,17 @@ function createOrderConsumer({ natsClient, inventoryService, logger, natsMetrics
       }
 
       const consumer = await js.consumers.get(ORDERS_STREAM, CONSUMER_NAME);
-      await startConsuming(consumer);
+      currentConsumer = consumer;
+      startConsuming(consumer).catch(err => {
+         logger.error('Consumer loop terminated unexpectedly', { error: err.message });
+      });
    }
 
    // -------------------------
    // SAFE WRAPPER
    // -------------------------
    async function startConsuming(consumer) {
-      while (true) {
+      while (!stopped) {
          try {
             const messages = await consumer.consume();
             logger.info('Order consumer started');
@@ -86,8 +91,21 @@ function createOrderConsumer({ natsClient, inventoryService, logger, natsMetrics
                });
             }
          } catch (err) {
+            if (stopped) 
+               break;
             logger.error('Consumer loop broken, restarting...', { error: err.message });
             await new Promise(r => setTimeout(r, 2000)); // restart
+         }
+      }
+   }
+
+   async function stop() {
+      stopped = true;
+      if (currentConsumer) {
+         try {
+            await currentConsumer.close();
+         } catch(err) {
+            logger.error('Unable to stop consumer', { error: err.message });
          }
       }
    }
@@ -140,7 +158,7 @@ function createOrderConsumer({ natsClient, inventoryService, logger, natsMetrics
       return res;
    }
 
-   return { start };
+   return { start, stop };
 }
 
 module.exports = createOrderConsumer;
