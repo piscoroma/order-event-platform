@@ -46,7 +46,10 @@ async function start() {
       process.on('SIGINT', shutdown);
 
    } catch (err) {
-      logger.error('Startup failed', { error: err.message });
+      logger.error('Startup failed', { 
+         error: err.message ,
+         cause: err.cause?.message ?? err.cause
+      });
       process.exit(1);
    }
 
