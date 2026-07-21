@@ -1,0 +1,60 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/piscoroma/inventory-service
+  tag: latest # will be overrided by the CI step that update id to the sha
+  pullPolicy: IfNotPresent
+  #pullSecrets: []
+
+imagePullSecrets:
+  - name: ghcr-pull-secret
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 3010          # porta interna del container/service
+
+ingressRoute:
+  enabled: true
+  entryPoints:
+    - websecure
+  host: inventory.example.local     # da sovrascrivere per ambiente
+  tls:
+    enabled: false
+    secretName: ""
+
+env:
+  NODE_ENV: dev
+  SHUTDOWN_TIMEOUT: 25000
+  LOG_LEVEL: info
+  NATS_URL: "nats://nats.default.svc.cluster.local:4222"
+  
+# Variabili sensibili -> Secret (i valori reali vanno passati via --set-file / sealed-secrets / vault,
+# MAI committati in chiaro in questo file)
+secretEnv:
+  MONGO_URI: "mongodb://inventory_svc:inventory_pass@mongo.homelab:27017/?authSource=inventory_db&replicaSet=rs0"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+probes:
+  liveness:
+    path: /healthz
+    initialDelaySeconds: 10
+    periodSeconds: 15
+  readiness:
+    path: /readyz
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    
+serviceAccount:
+  create: true
+  name: ""
+

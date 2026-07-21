@@ -1,0 +1,6 @@
+apiVersion: v2
+name: inventory-service
+description: Helm chart per inventory-service (order-event-platform)
+type: application
+version: 0.1.0 # versione del chart
+appVersion: "1.0.0"
