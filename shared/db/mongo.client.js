@@ -7,6 +7,7 @@ function createMongoClient({ logger, configMongo }) {
    async function connect(maxRetries = 5, delay = 5000) {
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
          try {
+            logger.debug(`Try to connect to mongo, attempt ${attempt}/${maxRetries}...`);
             await mongoose.connect(uri, { 
                dbName,
                serverSelectionTimeoutMS: 10000, // aumenta il timeout
