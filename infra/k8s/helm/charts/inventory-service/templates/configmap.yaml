@@ -7,7 +7,6 @@ metadata:
 data:
   SERVICE_NAME: inventory-service
   PORT: {{ .Values.service.port | quote }}
-  MONGO_DB_NAME: inventory_db
   {{- range $key, $value := .Values.env }}
   {{ $key }}: {{ $value | quote }}
   {{- end }}

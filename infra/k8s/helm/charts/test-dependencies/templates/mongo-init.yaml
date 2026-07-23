@@ -1,0 +1,107 @@
+{{- if .Values.mongo.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongo-init
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 5
+  ttlSecondsAfterFinished: 60
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: mongo-init
+          image: {{ .Values.mongo.image }}
+          command:
+            - sh
+            - -c
+            - |
+              echo "Waiting MongoDB..."
+
+              for i in $(seq 1 60); do
+                if mongosh --host mongo:27017 \
+                    --quiet \
+                    --eval "db.adminCommand('ping')" >/dev/null 2>&1
+                then
+                  echo "MongoDB ready"
+                  break
+                fi
+
+                echo "Mongo not ready yet ($i/60)"
+                sleep 2
+              done
+
+              if ! mongosh --host mongo:27017 \
+                    --quiet \
+                    --eval "db.adminCommand('ping')" >/dev/null 2>&1
+              then
+                echo "MongoDB unavailable after timeout"
+                exit 1
+              fi
+
+              echo "Initializing Mongo replica set..."
+
+              mongosh --host mongo:27017 --quiet --eval '
+                try {
+                  const status = rs.status()
+                  print("Replica set already initialized")
+                } catch (e) {
+                  rs.initiate({
+                    _id: "rs0",
+                    members: [
+                      { _id: 0, host: "mongo:27017" }
+                    ]
+                  })
+                  print("Replica set initialized")
+                }
+              '
+
+              echo "Waiting for PRIMARY..."
+
+              for i in $(seq 1 60); do
+                if mongosh --host mongo:27017 --quiet \
+                    --eval "db.hello().isWritablePrimary" | grep -q true
+                then
+                  echo "Mongo PRIMARY ready"
+                  break
+                fi
+
+                echo "Waiting Mongo PRIMARY ($i/60)"
+                sleep 2
+              done
+
+              if ! mongosh --host mongo:27017 --quiet \
+                  --eval "db.hello().isWritablePrimary" | grep -q true
+              then
+                echo "Mongo did not become PRIMARY"
+                exit 1
+              fi
+
+              echo "Creating application user..."
+
+              mongosh --host mongo:27017 --quiet <<'EOF'
+              use inventory_db
+
+              if (db.getUser("inventory_svc") == null) {
+                db.createUser({
+                  user: "inventory_svc",
+                  pwd: "inventory_pass",
+                  roles: [
+                    {
+                      role: "readWrite",
+                      db: "inventory_db"
+                    }
+                  ]
+                })
+
+                print("User created")
+              } else {
+                print("User already exists")
+              }
+              EOF
+
+              echo "Mongo initialization completed"
+{{- end }}

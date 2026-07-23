@@ -1,0 +1,5 @@
+Prerequisites
+
+Before installing this chart, create the required Secret:
+
+kubectl apply -f examples/inventory-service-secret.yaml

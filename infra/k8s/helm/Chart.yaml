@@ -1,0 +1,24 @@
+apiVersion: v2
+name: order-event-platform
+description: Umbrella chart for the Order Event Platform
+type: application
+version: 0.1.0
+
+dependencies:
+  - name: external-services
+    version: 0.1.0
+    repository: "file://charts/external-services"
+    condition: external-services.enabled
+    
+  - name: test-dependencies
+    version: 0.1.0
+    repository: "file://charts/test-dependencies"
+    condition: test-dependencies.enabled
+    
+  - name: inventory-service
+    version: 0.1.0
+    repository: "file://charts/inventory-service"
+
+#  - name: auth-service
+#    version: 0.1.0
+#    repository: "file://charts/auth-service"

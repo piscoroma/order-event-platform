@@ -1,0 +1,30 @@
+inventory-service:
+
+  ingressRoute:
+    enabled: true
+    entryPoints:
+      - websecure
+    host: inventory.example.local
+    tls:
+      enabled: false
+      secretName: ""
+
+  env:
+    NODE_ENV: test
+    NATS_URL: "nats://nats.order-event-platform:4222"
+
+  secretEnv:
+    MONGO_URI: "mongodb://inventory_svc:inventory_pass@mongo.order-event-platform:27017/?authSource=inventory_db&replicaSet=rs0"
+
+external-services:
+  enabled: true
+  mongo:
+    host: 192.168.1.175
+    port: 27017
+  nats:
+    host: 192.168.1.175
+    clientPort: 4222
+    monitorPort: 8222
+    
+test-dependencies:
+  enabled: false

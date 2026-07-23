@@ -26,7 +26,7 @@ Return the full name of the chart, possibly overridden
 Return common labels for all resources
 */}}
 {{- define "inventory-service.labels" -}}
-app.kubernetes.io/name: {{ include "apns-rest-api.name" . }}
+app.kubernetes.io/name: {{ include "inventory-service.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
