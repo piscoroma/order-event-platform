@@ -13,6 +13,8 @@ permissions:
   contents: read
   packages: write
   
+env:
+  IMAGE_TAG: test
   
 jobs:
 
@@ -138,7 +140,7 @@ jobs:
           push: false
           load: true
           
-          tags: ${{ matrix.service }}:test
+          tags: ${{ matrix.service }}:${{ env.IMAGE_TAG }}
 
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -160,11 +162,6 @@ jobs:
   helm-smoke-test:
     needs: build
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - service: inventory-service
-            chart: infra/k8s/helm/inventory-service
           
     steps:
       - name: Checkout repository 
@@ -173,11 +170,11 @@ jobs:
       - name: Download image
         uses: actions/download-artifact@v8
         with:
-          name: ${{ matrix.service }}-image
+          name: inventory-service-image
 
       - name: Load Docker image
         run: |
-          docker load -i ${{ matrix.service }}.tar
+          docker load -i inventory-service.tar
 
       - name: Create Kind cluster
         uses: helm/kind-action@v1.14.0
@@ -187,35 +184,46 @@ jobs:
       - name: Load image into Kind
         run: |
           kind load docker-image \
-            ${{ matrix.service }}:test \
+            inventory-service:${{ env.IMAGE_TAG }} \
             --name smoke-test
 
       - name: Install Helm
         uses: azure/setup-helm@v5
 
-      - name: Deploy chart
+      - name: Deploy umbrella chart
         run: |
+          helm dependency update infra/k8s/helm
+          
           helm upgrade --install \
-             ${{ matrix.service }} \
-             ${{ matrix.chart }} \
-            --set image.repository=${{ matrix.service }} \
-            --set image.tag=test \
-            --set image.pullPolicy=Never
+          order-event-platform \
+          infra/k8s/helm \
+          --namespace order-event-platform \
+          --create-namespace \
+          -f infra/k8s/helm/values-kind.yaml \
+          --set inventory-service.image.repository=inventory-service \
+          --set inventory-service.image.tag=test \
+          --set inventory-service.image.pullPolicy=Never
 
       - name: Wait rollout
         run: |
-          kubectl rollout status deployment/${{ matrix.service }} --timeout=120s
+          kubectl rollout status \
+          deployment/order-event-platform-inventory-service \
+          -n order-event-platform \
+          --timeout=120s
 
       - name: Show resources
         if: always()
         run: |
-          kubectl get all
+          kubectl get all -n order-event-platform
 
       - name: Show logs
         if: failure()
         run: |
-          kubectl describe pods
-          kubectl logs deployment/${{ matrix.service }} --all-containers=true
+          kubectl describe pods -n order-event-platform
+          kubectl logs \
+            deployment/order-event-platform-inventory-service \
+            -n order-event-platform \
+            --all-containers=true
 
   push:
     needs:
