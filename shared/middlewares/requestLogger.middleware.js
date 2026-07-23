@@ -1,15 +1,36 @@
-const requestLogger = ({ logger }) => (req, res, next) => {
-   logger.info(`${req.hostname} ${req.method} ${req.path}`);
-   const currentTime = Date.now();
-   const originalSend = res.send;
-   
-   res.send = function (body) {
-      const responseTime = Date.now() - currentTime;
-      logger.info(`${req.hostname} ${req.method} ${res.statusCode} ${responseTime}ms`);
-      originalSend.call(this, body);
-   };
+const IGNORED_PATHS = new Set([
+   '/healthz',
+   '/readyz',
+   '/metrics'
+]);
 
-  next();
+
+const requestLogger = ({ logger }) => (req, res, next) => {
+   if (IGNORED_PATHS.has(req.path)) {
+      return next();
+   }
+
+   const start = Date.now();
+
+   logger.info('Incoming request', {
+      host: req.hostname,
+      method: req.method,
+      path: req.path,
+      ip: req.ip
+   });
+
+   res.on('finish', () => {
+      logger.info('Request completed', {
+         host: req.hostname,
+         method: req.method,
+         path: req.path,
+         statusCode: res.statusCode,
+         responseTimeMs: Date.now() - start
+      });
+   });
+
+   next();
+
 };
 
 module.exports = requestLogger;
