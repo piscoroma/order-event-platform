@@ -34,21 +34,21 @@ spec:
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: {{ include "inventory-service.fullname"-config . }}
+                name: {{ include "inventory-service.fullname" . }}-config
             {{- if .Values.secretEnv }}
             - secretRef:
-                name: {{ include "inventory-service.fullname"-secret . }}
+                name: {{ include "inventory-service.fullname" . }}-secret
             {{- end }}
           livenessProbe:
             httpGet:
               path: {{ .Values.probes.liveness.path }}
-              port: http
+              port: {{ .Values.service.port }}
             initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.liveness.periodSeconds }}
           readinessProbe:
             httpGet:
               path: {{ .Values.probes.readiness.path }}
-              port: http
+              port: {{ .Values.service.port }}
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds }}
           resources:

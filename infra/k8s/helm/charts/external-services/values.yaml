@@ -1,0 +1,8 @@
+mongo:
+  host: 192.168.1.175
+  port: 27017
+
+nats:
+  host: 192.168.1.175
+  clientPort: 4222
+  monitorPort: 8222

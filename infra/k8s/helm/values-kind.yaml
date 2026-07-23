@@ -1,0 +1,22 @@
+inventory-service:
+
+  image:
+    repository: inventory-service
+    tag: latest
+    pullPolicy: Never
+
+  ingressRoute:
+    enabled: false
+
+  env:
+    NODE_ENV: test
+    NATS_URL: "nats://nats.order-event-platform:4222"
+
+  secretEnv:
+    MONGO_URI: "mongodb://inventory_svc:inventory_pass@mongo.order-event-platform:27017/?authSource=inventory_db&replicaSet=rs0"
+
+external-services:
+  enabled: false
+  
+test-dependencies:
+  enabled: true

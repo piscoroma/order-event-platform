@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+spec:
+  ports:
+    - name: client
+      port: {{ .Values.nats.clientPort }}
+      targetPort: {{ .Values.nats.clientPort }}
+
+    - name: monitor
+      port: {{ .Values.nats.monitorPort }}
+      targetPort: {{ .Values.nats.monitorPort }}
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: nats
+subsets:
+  - addresses:
+      - ip: {{ .Values.nats.host }}
+    ports:
+      - name: client
+        port: {{ .Values.nats.clientPort }}
+
+      - name: monitor
+        port: {{ .Values.nats.monitorPort }}
+        

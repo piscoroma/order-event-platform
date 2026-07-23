@@ -1,0 +1,44 @@
+{{- if .Values.nats.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nats
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nats
+  template:
+    metadata:
+      labels:
+        app: nats
+    spec:
+      containers:
+        - name: nats
+          image: {{ .Values.nats.image }}
+          args:
+            - "--jetstream"
+            - "-m"
+            - "8222"
+          ports:
+            - name: client
+              containerPort: {{ .Values.nats.clientPort }}
+            - name: monitor
+              containerPort: {{ .Values.nats.monitorPort }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nats
+spec:
+  selector:
+    app: nats
+  ports:
+    - name: client
+      port: {{ .Values.nats.clientPort }}
+      targetPort: {{ .Values.nats.clientPort }}
+
+    - name: monitor
+      port: {{ .Values.nats.monitorPort }}
+      targetPort: {{ .Values.nats.monitorPort }}
+{{- end }}
