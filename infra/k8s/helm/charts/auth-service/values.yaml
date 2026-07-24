@@ -1,0 +1,55 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/piscoroma/auth-service
+  tag: latest
+  pullPolicy: Always
+  
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  port: 3011
+  
+ingressRoute:
+  enabled: false
+
+env:
+  NODE_ENV: test
+  SHUTDOWN_TIMEOUT: 25000
+  LOG_LEVEL: info
+  MONGO_HOST: mongo.order-event-platform
+  MONGO_PORT: 27017
+  MONGO_DB_NAME: auth_db
+  MONGO_REPLICA_SET: rs0
+  JWT_EXPIRES_IN: 15m
+  REFRESH_TOKEN_EXPIRES_DAYS: 7
+
+jwt:
+  mountPath: /app/certs
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+probes:
+  liveness:
+    path: /healthz
+    initialDelaySeconds: 10
+    periodSeconds: 15
+  readiness:
+    path: /readyz
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    
+serviceAccount:
+  create: true
+  name: ""
+

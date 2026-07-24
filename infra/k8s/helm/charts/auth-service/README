@@ -1,0 +1,6 @@
+Prerequisites
+
+Before installing this chart, create the required Secret:
+
+kubectl apply -f examples/auth-service-db-secrets.yaml
+kubectl apply -f examples/auth-service-jwt-secrets.yaml

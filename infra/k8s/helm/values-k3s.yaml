@@ -21,6 +21,30 @@ inventory-service:
 #    LOG_LEVEL: debug
 
   secretName: inventory-service-secrets
+  
+auth-service:
+
+#  image:
+#    repository: auth-service
+#    tag: test
+#    pullPolicy: Never
+  
+  ingressRoute:
+    enabled: true
+    entryPoints:
+      - websecure
+    host: auth.example.local
+    tls:
+      enabled: false
+      secretName: ""
+
+  env:
+    NODE_ENV: test
+    MONGO_HOST: mongo.order-event-platform
+#    LOG_LEVEL: debug
+  
+  jwt:
+    mountPath: /app/certs
 
 external-services:
   enabled: true

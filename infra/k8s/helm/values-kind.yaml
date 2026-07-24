@@ -14,6 +14,24 @@ inventory-service:
     MONGO_HOST: mongo.order-event-platform
     
   secretName: inventory-service-secrets
+  
+auth-service:
+
+  image:
+    repository: auth-service
+    tag: test
+    pullPolicy: Never
+  
+  ingressRoute:
+    enabled: false
+
+  env:
+    NODE_ENV: test
+    MONGO_HOST: mongo.order-event-platform
+#    LOG_LEVEL: debug
+  
+  jwt:
+    mountPath: /app/certs
 
 external-services:
   enabled: false

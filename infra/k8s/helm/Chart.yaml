@@ -19,6 +19,6 @@ dependencies:
     version: 0.1.0
     repository: "file://charts/inventory-service"
 
-#  - name: auth-service
-#    version: 0.1.0
-#    repository: "file://charts/auth-service"
+  - name: auth-service
+    version: 0.1.0
+    repository: "file://charts/auth-service"
