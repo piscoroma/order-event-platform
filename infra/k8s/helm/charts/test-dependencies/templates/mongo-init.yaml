@@ -80,27 +80,34 @@ spec:
                 exit 1
               fi
 
-              echo "Creating application user..."
+              echo "Creating application users..."
 
               mongosh --host mongo:27017 --quiet <<'EOF'
-              use inventory_db
 
-              if (db.getUser("inventory_svc") == null) {
-                db.createUser({
-                  user: "inventory_svc",
-                  pwd: "inventory_pass",
-                  roles: [
-                    {
-                      role: "readWrite",
-                      db: "inventory_db"
-                    }
-                  ]
-                })
+              function ensureUser(database, username, password) {
+                const dbRef = db.getSiblingDB(database);
 
-                print("User created")
-              } else {
-                print("User already exists")
+                if (dbRef.getUser(username) == null) {
+                  dbRef.createUser({
+                    user: username,
+                    pwd: password,
+                    roles: [
+                      {
+                        role: "readWrite",
+                        db: database
+                      }
+                    ]
+                  });
+
+                  print(`User ${username} created on ${database}`);
+                } else {
+                  print(`User ${username} already exists`);
+                }
               }
+
+              ensureUser("inventory_db", "inventory_svc", "inventory_pass");
+              ensureUser("auth_db", "auth_svc", "auth_pass");
+
               EOF
 
               echo "Mongo initialization completed"

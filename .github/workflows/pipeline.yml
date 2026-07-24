@@ -183,8 +183,8 @@ jobs:
           echo "===> Lint inventory-service"
           helm lint infra/k8s/helm/charts/inventory-service
 
-          #echo "===> Lint auth-service"
-          #helm lint infra/k8s/helm/charts/auth-service
+          echo "===> Lint auth-service"
+          helm lint infra/k8s/helm/charts/auth-service
 
           echo "===> Render umbrella"
           helm template \
@@ -201,19 +201,27 @@ jobs:
     env:
       INVENTORY_MONGO_USERNAME: ${{ secrets.INVENTORY_MONGO_USERNAME }}
       INVENTORY_MONGO_PASSWORD: ${{ secrets.INVENTORY_MONGO_PASSWORD }}
+      AUTH_MONGO_USERNAME: ${{ secrets.AUTH_MONGO_USERNAME }}
+      AUTH_MONGO_PASSWORD: ${{ secrets.AUTH_MONGO_PASSWORD }}
           
     steps:
       - name: Checkout repository 
         uses: actions/checkout@v6
 
-      - name: Download image
+      - name: Download inventory image
         uses: actions/download-artifact@v8
         with:
           name: inventory-service-image
 
+      - name: Download auth image
+        uses: actions/download-artifact@v8
+        with:
+          name: auth-service-image
+
       - name: Load Docker image
         run: |
           docker load -i inventory-service.tar
+          docker load -i auth-service.tar
 
       - name: Create Kind cluster
         uses: helm/kind-action@v1.14.0
@@ -224,6 +232,12 @@ jobs:
         run: |
           kubectl create namespace order-event-platform --dry-run=client -o yaml | kubectl apply -f -
 
+      - name: Generate JWT keypair
+        run: |
+          mkdir jwt
+          openssl ecparam -name prime256v1 -genkey -noout -out jwt/private.pem
+          openssl ec -in jwt/private.pem -pubout -out jwt/public.pem
+      
       - name: Create Kubernetes Secrets
         run: |
           kubectl create secret generic inventory-service-secrets \
@@ -231,12 +245,23 @@ jobs:
             --from-literal=MONGO_USERNAME="$INVENTORY_MONGO_USERNAME" \
             --from-literal=MONGO_PASSWORD="$INVENTORY_MONGO_PASSWORD" \
             --dry-run=client -o yaml | kubectl apply -f -
+            
+          kubectl create secret generic auth-service-db-secrets \
+            --namespace order-event-platform \
+            --from-literal=MONGO_USERNAME="$AUTH_MONGO_USERNAME" \
+            --from-literal=MONGO_PASSWORD="$AUTH_MONGO_PASSWORD" \
+            --dry-run=client -o yaml | kubectl apply -f -
+          
+          kubectl create secret generic auth-service-jwt-secrets \
+            --namespace order-event-platform \
+            --from-file=private.pem=jwt/private.pem \
+            --from-literal=public.pem=jwt/public.pem \
+            --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Load image into Kind
+      - name: Load images into Kind
         run: |
-          kind load docker-image \
-            inventory-service:${{ env.IMAGE_TAG }} \
-            --name smoke-test
+          kind load docker-image inventory-service:${{ env.IMAGE_TAG }} --name smoke-test
+          kind load docker-image auth-service:${{ env.IMAGE_TAG }} --name smoke-test
 
       - name: Install Helm
         uses: azure/setup-helm@v5
@@ -252,14 +277,21 @@ jobs:
           -f infra/k8s/helm/values-kind.yaml \
           --set inventory-service.image.repository=inventory-service \
           --set inventory-service.image.tag=test \
-          --set inventory-service.image.pullPolicy=Never
+          --set inventory-service.image.pullPolicy=Never \
+          --set auth-service.image.repository=auth-service \
+          --set auth-service.image.tag=test \
+          --set auth-service.image.pullPolicy=Never
 
       - name: Wait rollout
         run: |
-          kubectl rollout status \
-          deployment/order-event-platform-inventory-service \
-          -n order-event-platform \
-          --timeout=120s
+          for deployment in \
+            order-event-platform-inventory-service \
+            order-event-platform-auth-service
+          do
+            kubectl rollout status deployment/$deployment \
+              -n order-event-platform \
+              --timeout=120s
+          done
 
       - name: Show resources
         if: always()
@@ -270,10 +302,20 @@ jobs:
         if: failure()
         run: |
           kubectl describe pods -n order-event-platform
-          kubectl logs \
-            deployment/order-event-platform-inventory-service \
-            -n order-event-platform \
-            --all-containers=true
+          
+          for deploy in \
+            order-event-platform-inventory-service \
+            order-event-platform-auth-service
+          do
+            echo "===================="
+            echo "$deploy"
+            echo "===================="
+
+            kubectl logs \
+              deployment/$deploy \
+              -n order-event-platform \
+              --all-containers=true || true
+          done
 
   push:
     needs:
