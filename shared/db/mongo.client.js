@@ -1,13 +1,19 @@
 const mongoose = require('mongoose');
 
 function createMongoClient({ logger, configMongo }) {
-   const { uri, dbName } = configMongo;
+   const { 
+      host, port, dbName, replicaSet, username, password 
+   } = configMongo;
    let isManualDisconnect = false;
+   let hasConnected = false;
 
    async function connect(maxRetries = 5, delay = 5000) {
+      const uri = 
+         `mongodb://${encodeURIComponent(username)}:${encodeURIComponent(password)}` +
+         `@${host}:${port}/?authSource=${dbName}&replicaSet=${replicaSet}`;
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
          try {
-            logger.debug(`Try to connect to mongo, attempt ${attempt}/${maxRetries}...`);
+            logger.debug(`Try to connect to mongo ${host}:${port}, attempt ${attempt}/${maxRetries}...`);
             await mongoose.connect(uri, { 
                dbName,
                serverSelectionTimeoutMS: 10000, // aumenta il timeout
@@ -18,16 +24,21 @@ function createMongoClient({ logger, configMongo }) {
                error: err.message,
                attempt,
                maxRetries,
+               host,
+               port,
+               database: dbName,
+               replicaSet
             });
 
             if (attempt === maxRetries) {
-               logger.error('Mongo connection retries exhausted');
+               logger.error(`Mongo connection retries exhausted - failed attempts: ${attempt}/${maxRetries}`);
                process.exit(1);
             }
 
             await new Promise(res => setTimeout(res, delay));
          }
       }
+      hasConnected = true;
    }
 
    async function disconnect() {
@@ -37,7 +48,12 @@ function createMongoClient({ logger, configMongo }) {
 
    function registerEvents() {
       mongoose.connection.on('connected', () => {
-         logger.info('Mongo connected');
+         logger.info(`Mongo connected`, {
+            host,
+            port,
+            database: dbName,
+            replicaSet
+         });
       });
 
       mongoose.connection.on('disconnected', () => {
@@ -45,8 +61,10 @@ function createMongoClient({ logger, configMongo }) {
             logger.info('MongoDB manually disconnected');
             return;
          }
-         logger.warn('MongoDB disconnected, retrying...');
-         setTimeout(connect, 5000);
+         if (hasConnected) {
+            logger.warn('MongoDB disconnected, retrying...');
+            setTimeout(connect, 5000);
+         }
       });
 
       mongoose.connection.on('error', (err) => {
