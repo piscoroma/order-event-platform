@@ -159,8 +159,42 @@ jobs:
           name: ${{ matrix.service }}-image
           path: ${{ matrix.service }}.tar
           
-  helm-smoke-test:
+  helm-validation:
     needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install Helm
+        uses: azure/setup-helm@v5
+
+      - name: Validate Helm charts
+        run: |
+          helm dependency update infra/k8s/helm
+
+          echo "===> Lint umbrella"
+          helm lint \
+            infra/k8s/helm \
+            -f infra/k8s/helm/values-kind.yaml
+  
+          echo "===> Lint inventory-service"
+          helm lint infra/k8s/helm/charts/inventory-service
+
+          #echo "===> Lint auth-service"
+          #helm lint infra/k8s/helm/charts/auth-service
+
+          echo "===> Render umbrella"
+          helm template \
+            order-event-platform \
+            infra/k8s/helm \
+            -f infra/k8s/helm/values-kind.yaml > /dev/null
+            
+  helm-smoke-test:
+    needs: 
+      - build
+      - helm-validation
     runs-on: ubuntu-latest
     
     env:
