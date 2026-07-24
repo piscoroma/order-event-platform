@@ -199,8 +199,8 @@ jobs:
     runs-on: ubuntu-latest
     
     env:
-      MONGO_USERNAME: ${{ secrets.MONGO_USERNAME }}
-      MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
+      INVENTORY_MONGO_USERNAME: ${{ secrets.INVENTORY_MONGO_USERNAME }}
+      INVENTORY_MONGO_PASSWORD: ${{ secrets.INVENTORY_MONGO_PASSWORD }}
           
     steps:
       - name: Checkout repository 
@@ -228,8 +228,8 @@ jobs:
         run: |
           kubectl create secret generic inventory-service-secrets \
             --namespace order-event-platform \
-            --from-literal=MONGO_USERNAME="$MONGO_USERNAME" \
-            --from-literal=MONGO_PASSWORD="$MONGO_PASSWORD" \
+            --from-literal=MONGO_USERNAME="$INVENTORY_MONGO_USERNAME" \
+            --from-literal=MONGO_PASSWORD="$INVENTORY_MONGO_PASSWORD" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Load image into Kind
