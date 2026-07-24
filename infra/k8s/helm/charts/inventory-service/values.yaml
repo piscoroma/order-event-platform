@@ -18,8 +18,16 @@ ingressRoute:
   enabled: false
 
 env:
+  NODE_ENV: test
   SHUTDOWN_TIMEOUT: 25000
   LOG_LEVEL: info
+  MONGO_HOST: mongo.order-event-platform
+  MONGO_PORT: 27017
+  MONGO_DB_NAME: inventory_db
+  MONGO_REPLICA_SET: rs0
+  NATS_URL: "nats://nats.order-event-platform:4222"
+  
+secretName: inventory-service-secrets
 
 resources:
   requests:

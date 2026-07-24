@@ -36,10 +36,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "inventory-service.fullname" . }}-config
-            {{- if .Values.secretEnv }}
             - secretRef:
-                name: {{ include "inventory-service.fullname" . }}-secret
-            {{- end }}
+                name: {{ .Values.secretName }}
           livenessProbe:
             httpGet:
               path: {{ .Values.probes.liveness.path }}

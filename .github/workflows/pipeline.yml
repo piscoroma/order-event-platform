@@ -162,6 +162,10 @@ jobs:
   helm-smoke-test:
     needs: build
     runs-on: ubuntu-latest
+    
+    env:
+      MONGO_USERNAME: ${{ secrets.MONGO_USERNAME }}
+      MONGO_PASSWORD: ${{ secrets.MONGO_PASSWORD }}
           
     steps:
       - name: Checkout repository 
@@ -181,6 +185,18 @@ jobs:
         with:
           cluster_name: smoke-test
 
+      - name: Create namespace
+        run: |
+          kubectl create namespace order-event-platform --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Create Kubernetes Secrets
+        run: |
+          kubectl create secret generic inventory-service-secrets \
+            --namespace order-event-platform \
+            --from-literal=MONGO_USERNAME="$MONGO_USERNAME" \
+            --from-literal=MONGO_PASSWORD="$MONGO_PASSWORD" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
       - name: Load image into Kind
         run: |
           kind load docker-image \
@@ -198,7 +214,6 @@ jobs:
           order-event-platform \
           infra/k8s/helm \
           --namespace order-event-platform \
-          --create-namespace \
           -f infra/k8s/helm/values-kind.yaml \
           --set inventory-service.image.repository=inventory-service \
           --set inventory-service.image.tag=test \

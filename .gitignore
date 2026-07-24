@@ -144,3 +144,5 @@ vite.config.ts.timestamp-*
 .vite/
 
 *.pem
+
+infra/k8s/helm/secrets
