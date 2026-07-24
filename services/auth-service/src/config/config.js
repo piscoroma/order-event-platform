@@ -8,8 +8,12 @@ function loadConfig() {
          shutdownTimeoutMs: process.env.SHUTDOWN_TIMEOUT || 25000
       },
       mongo: {
-         uri: process.env.MONGO_URI || 'mongodb://user:pass@localhost:27017/?authSource=admin',
-         dbName: process.env.MONGO_DB_NAME
+         host: process.env.MONGO_HOST || 'mongo.demo.svc.cluster.local',
+         port: process.env.MONGO_PORT || 27017,
+         dbName: process.env.MONGO_DB_NAME,
+         replicaSet: process.env.MONGO_REPLICA_SET,
+         username: process.env.MONGO_USERNAME,
+         password: process.env.MONGO_PASSWORD
       },
       logger: {
          serviceName: process.env.SERVICE_NAME,
