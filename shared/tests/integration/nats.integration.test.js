@@ -1,6 +1,6 @@
-const createNatsClient = require('../messaging/nats'); // adegua il path
-const { startNatsContainer } = require('./utils/nats_testcontainer');
-const { mockLogger } = require('./utils/mock_logger');
+const createNatsClient = require('../../messaging/nats'); // adegua il path
+const { startNatsContainer } = require('../utils/nats_testcontainer');
+const { mockLogger } = require('../utils/mock_logger');
 
 describe('natsClient (integration)', () => {
    let container, url, client;

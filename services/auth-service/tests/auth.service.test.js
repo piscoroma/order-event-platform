@@ -8,6 +8,7 @@ const {
    UnauthorizedError,
    ConflictError
 } = require('@order-event-platform/shared/errors/base.errors');
+const createJwtService = require('@order-event-platform/shared/auth/jwt.service');
 
 const User = require('../src/models/user.model');
 const RefreshToken = require('../src/models/refresh-token.model');
@@ -21,12 +22,22 @@ const { privateKey, publicKey } = crypto.generateKeyPairSync('ec', {
   privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
 })
 
+const configJwt = {
+   privateKey, 
+   publicKey, 
+   expiresIn: '15m',
+   issuer: 'order-event-platform-auth',
+   audience: 'order-event-platform'
+};
+const config = {
+   jwt: configJwt,
+   refreshToken: { expiresInDays: 7 }
+};
+const jwtService = createJwtService({configJwt});
 const authService = createAuthService({ 
    logger: mockLogger,
-   config: {
-      jwt: { privateKey, publicKey, expiresIn: '15m' },
-      refreshToken: { expiresInDays: 7 }
-   }
+   config,
+   jwtService
 });
 
 async function createUser(email, password, role) {

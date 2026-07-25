@@ -23,6 +23,8 @@ function loadConfig() {
          privateKey: fs.readFileSync(process.env.JWT_PRIVATE_KEY_PATH || './certs/private.pem', 'utf8'),
          publicKey: fs.readFileSync(process.env.JWT_PUBLIC_KEY_PATH || './certs/public.pem', 'utf8'),
          expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+         issuer: process.env.JWT_ISSUER || 'order-event-platform-auth',
+         audience: process.env.JWT_AUDIENCE || 'order-event-platform'
       },      
       refreshToken: {
          expiresInDays: process.env.REFRESH_TOKEN_EXPIRES_DAYS || 7

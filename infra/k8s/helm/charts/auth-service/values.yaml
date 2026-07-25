@@ -26,6 +26,8 @@ env:
   MONGO_DB_NAME: auth_db
   MONGO_REPLICA_SET: rs0
   JWT_EXPIRES_IN: 15m
+  JWT_ISSUER: order-event-platform-auth
+  JWT_AUDIENCE: order-event-platform
   REFRESH_TOKEN_EXPIRES_DAYS: 7
 
 jwt:

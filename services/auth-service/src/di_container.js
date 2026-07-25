@@ -4,6 +4,7 @@ const createLogger = require('@order-event-platform/shared/observability/logger'
 const createRegistry = require('@order-event-platform/shared/observability/registry');
 const createHttpMetrics = require('@order-event-platform/shared/observability/http.metrics');
 const createMongoClient = require('@order-event-platform/shared/db/mongo.client');
+const createJwtService = require('@order-event-platform/shared/auth/jwt.service')
 const createRequestContextMw = require('@order-event-platform/shared/middlewares/requestContext.middleware')
 const createErrorHandlerMw = require('@order-event-platform/shared/middlewares/error.middleware')
 const createRequestLoggerMw = require('@order-event-platform/shared/middlewares/requestLogger.middleware')
@@ -28,6 +29,7 @@ container.register({
    configServer: asValue(config.server),
    configMongo: asValue(config.mongo),
    configLog: asValue(config.logger),
+   configJwt: asValue(config.jwt),
 
    // registry
    register: asValue(createRegistry(config.serviceName)),
@@ -48,6 +50,7 @@ container.register({
    mongoClient: asFunction(createMongoClient).singleton(),
 
    // service
+   jwtService: asFunction(createJwtService).singleton(),
    authService: asFunction(createAuthService).singleton(),
 
    // controller

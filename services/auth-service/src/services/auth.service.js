@@ -1,6 +1,5 @@
 const bcrypt = require('bcrypt')
 const crypto = require('crypto')
-const jwt = require('jsonwebtoken')
 
 const { 
    NotFoundError,
@@ -13,19 +12,14 @@ const RefreshToken = require('../models/refresh-token.model');
 
 const SALT_ROUNDS = 10;
 
-function createAuthService({ logger, config }) {
+function createAuthService({ logger, config, jwtService }) {
    
    const generateAccessToken = (user) => {
-      return jwt.sign(
+      return jwtService.sign(
          {
             userId: user._id,
             email: user.email,
             role: user.role
-         },
-         config.jwt.privateKey,
-         { 
-            algorithm: 'ES256', 
-            expiresIn: config.jwt.expiresIn 
          }
       )
    }
@@ -110,16 +104,7 @@ function createAuthService({ logger, config }) {
    }
 
    async function validate(authorizationHeader) {
-      if (!authorizationHeader || !authorizationHeader.startsWith('Bearer '))
-         throw new UnauthorizedError("Missing or malformed Authorization header");
-
-      const token = authorizationHeader.slice(7);
-      try{
-         const payload = jwt.verify(token, config.jwt.publicKey);
-         return payload;
-      }catch{
-         throw new UnauthorizedError("Invalid or expired access token");
-      }
+      return jwtService.validate(authorizationHeader);
    }
 
    async function getMe(userId) {
