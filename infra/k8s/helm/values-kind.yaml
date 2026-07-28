@@ -13,7 +13,8 @@ inventory-service:
     NATS_URL: "nats://nats.order-event-platform:4222"
     MONGO_HOST: mongo.order-event-platform
     
-  secretName: inventory-service-secrets
+  jwt:
+    mountPath: /app/certs
   
 auth-service:
 
@@ -33,6 +34,9 @@ auth-service:
   jwt:
     mountPath: /app/certs
 
+jwt:
+  createPublicKeyConfigMap: false
+  
 external-services:
   enabled: false
   

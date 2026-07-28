@@ -1,0 +1,9 @@
+{{- if .Values.jwt.createPublicKeyConfigMap }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jwt-public-key
+data:
+  public.pem: |
+{{ .Values.jwt.publicKey | indent 4 }}
+{{- end }}

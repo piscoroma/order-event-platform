@@ -19,8 +19,6 @@ inventory-service:
     NATS_URL: "nats://nats.order-event-platform:4222"
     MONGO_HOST: mongo.order-event-platform
 #    LOG_LEVEL: debug
-
-  secretName: inventory-service-secrets
   
 auth-service:
 
@@ -42,9 +40,15 @@ auth-service:
     NODE_ENV: test
     MONGO_HOST: mongo.order-event-platform
 #    LOG_LEVEL: debug
-  
-  jwt:
-    mountPath: /app/certs
+      
+jwt:
+  createPublicKeyConfigMap: true
+  publicKey: |
+    -----BEGIN PUBLIC KEY-----
+    MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEv3FnduktqWRsra4XQH5eFc+7ahXS
+    h2oMXSLC4y06xvKZZ+UKA2nQ0qXj+6uDl9vqy9Blrbse16SLTGnoxpJwdQ==
+    -----END PUBLIC KEY-----
+
 
 external-services:
   enabled: true
