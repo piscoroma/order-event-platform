@@ -1,44 +1,11 @@
 inventory-service:
-
   image:
     repository: inventory-service
-    tag: latest
     pullPolicy: Never
-
-  ingressRoute:
-    enabled: false
-
-  env:
-    NODE_ENV: test
-    NATS_URL: "nats://nats.order-event-platform:4222"
-    MONGO_HOST: mongo.order-event-platform
-    
-  jwt:
-    mountPath: /app/certs
   
 auth-service:
-
   image:
     repository: auth-service
-    tag: test
     pullPolicy: Never
-  
-  ingressRoute:
-    enabled: false
 
-  env:
-    NODE_ENV: test
-    MONGO_HOST: mongo.order-event-platform
-#    LOG_LEVEL: debug
-  
-  jwt:
-    mountPath: /app/certs
-
-jwt:
-  createPublicKeyConfigMap: false
-  
-external-services:
-  enabled: false
-  
-test-dependencies:
   enabled: true

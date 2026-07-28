@@ -1,9 +1,9 @@
-{{- if .Values.jwt.createPublicKeyConfigMap }}
+{{- if .Values.jwt.publicKeyConfigMap.enabled }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: jwt-public-key
 data:
   public.pem: |
-{{ .Values.jwt.publicKey | indent 4 }}
+{{ .Values.jwt.publicKeyConfigMap.publicKey | indent 4 }}
 {{- end }}

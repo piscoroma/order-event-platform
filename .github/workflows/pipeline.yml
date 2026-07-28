@@ -279,12 +279,8 @@ jobs:
           infra/k8s/helm \
           --namespace order-event-platform \
           -f infra/k8s/helm/values-kind.yaml \
-          --set inventory-service.image.repository=inventory-service \
           --set inventory-service.image.tag=test \
-          --set inventory-service.image.pullPolicy=Never \
-          --set auth-service.image.repository=auth-service \
-          --set auth-service.image.tag=test \
-          --set auth-service.image.pullPolicy=Never
+          --set auth-service.image.tag=test 
 
       - name: Wait rollout
         run: |

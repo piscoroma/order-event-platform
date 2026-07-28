@@ -1,0 +1,32 @@
+inventory-service:
+  env:
+    NODE_ENV: test
+    NATS_URL: "nats://nats.order-event-platform:4222"
+    MONGO_HOST: mongo.order-event-platform
+  
+auth-service:
+  env:
+    NODE_ENV: test
+    MONGO_HOST: mongo.order-event-platform
+      
+jwt:
+  publicKeyConfigMap:
+    enabled: false
+
+ingress:
+  enabled: false
+  className: traefik
+  host: ""
+  annotations: {}
+  tls:
+    enabled: false
+    secretName: ""
+  paths:
+    auth: /auth
+    inventory: /inventory
+
+external-services:
+  enabled: false
+    
+test-dependencies:
+  enabled: true
