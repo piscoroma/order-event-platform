@@ -24,6 +24,7 @@ const requestLogger = ({ logger }) => (req, res, next) => {
          host: req.hostname,
          method: req.method,
          path: req.path,
+         ip: req.ip,
          statusCode: res.statusCode,
          responseTimeMs: Date.now() - start
       });

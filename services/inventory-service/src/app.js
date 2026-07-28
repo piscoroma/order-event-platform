@@ -4,7 +4,8 @@ const requestContextMw = require('@order-event-platform/shared/middlewares/reque
 
 function createApp({ 
    inventoryRoutes, systemRoutes, 
-   requestLoggerMw, errorHandlerMw, httpMetricsMw
+   requestLoggerMw, errorHandlerMw, 
+   httpMetricsMw, authenticationMw
 }) {
    const app = express();
    
@@ -13,7 +14,7 @@ function createApp({
    app.use(requestContextMw);
    app.use(requestLoggerMw);
 
-   app.use('/inventory', inventoryRoutes);
+   app.use('/inventory', authenticationMw, inventoryRoutes);
    app.use('/', systemRoutes);
 
    app.use(errorHandlerMw);

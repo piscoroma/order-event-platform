@@ -36,6 +36,7 @@ async function start() {
          requestLoggerMw: container.resolve('requestLoggerMw'),
          errorHandlerMw: container.resolve('errorHandlerMw'),
          httpMetricsMw: container.resolve('httpMetricsMw'),
+         authenticationMw: container.resolve('authenticationMw')
       });
 
       server = app.listen(PORT, () => {

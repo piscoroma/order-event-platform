@@ -6,6 +6,8 @@ const createHttpMetrics = require('@order-event-platform/shared/observability/ht
 const createNatsMetrics = require('@order-event-platform/shared/observability/nats.metrics');
 const createMongoClient = require('@order-event-platform/shared/db/mongo.client');
 const createNatsClient = require('@order-event-platform/shared/messaging/nats');
+const createJwtService = require('@order-event-platform/shared/auth/jwt.service')
+const createAuthenticationMw = require('@order-event-platform/shared/middlewares/authentication.middleware')
 const createRequestContextMw = require('@order-event-platform/shared/middlewares/requestContext.middleware')
 const createErrorHandlerMw = require('@order-event-platform/shared/middlewares/error.middleware')
 const createRequestLoggerMw = require('@order-event-platform/shared/middlewares/requestLogger.middleware')
@@ -32,6 +34,7 @@ container.register({
    configMongo: asValue(config.mongo),
    configNats: asValue(config.nats),
    configLog: asValue(config.logger),
+   configJwt: asValue(config.jwt),
 
    // registry
    register: asValue(createRegistry(config.serviceName)),
@@ -44,7 +47,10 @@ container.register({
    natsMetrics: asFunction(createNatsMetrics).singleton(),
    inventoryMetrics: asFunction(createInventoryMetrics).singleton(),
 
+   jwtService: asFunction(createJwtService).singleton(),
+
    // middlewares
+   authenticationMw: asFunction(createAuthenticationMw).singleton(),
    requestContextMw: asFunction(createRequestContextMw).singleton(),
    errorHandlerMw: asFunction(createErrorHandlerMw).singleton(),
    requestLoggerMw: asFunction(createRequestLoggerMw).singleton(),

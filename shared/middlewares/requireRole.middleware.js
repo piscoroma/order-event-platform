@@ -1,6 +1,6 @@
 function requireRoleMw(...roles) {
    return function (req, res, next) {
-      const userRole = req.headers['x-user-role'];
+      const userRole = req.user?.role ?? req.headers['x-user-role'];
 
       if (!userRole) {
          return res.status(401).json({ message: 'Unauthorized' });
