@@ -1,0 +1,50 @@
+{{- if .Values.ingress.enabled }}
+
+{{- $auth := index .Values "auth-service" -}}
+{{- $inventory := index .Values "inventory-service" -}}
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: {{ include "order-event-platform.fullname" . }}
+  labels:
+    {{- include "order-event-platform.labels" . | nindent 4 }}
+
+  {{- with .Values.ingress.annotations }}
+  annotations:
+{{ toYaml . | indent 4 }}
+  {{- end }}
+
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+  {{- end }}
+
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+
+          - path: {{ .Values.ingress.paths.auth }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-auth-service
+                port:
+                  number: {{ $auth.service.port }}
+
+          - path: {{ .Values.ingress.paths.inventory }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-inventory-service
+                port:
+                  number: {{ $inventory.service.port }}
+
+{{- end }}

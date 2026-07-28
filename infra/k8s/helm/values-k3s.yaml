@@ -25,6 +25,9 @@ jwt:
       h2oMXSLC4y06xvKZZ+UKA2nQ0qXj+6uDl9vqy9Blrbse16SLTGnoxpJwdQ==
       -----END PUBLIC KEY-----
       
+ingress:
+  enabled: true
+  host: api.order-event-platform      
 
 external-services:
   enabled: true

@@ -8,4 +8,6 @@ auth-service:
     repository: auth-service
     pullPolicy: Never
 
+ingress: 
   enabled: true
+  host: api.order-event-platform
