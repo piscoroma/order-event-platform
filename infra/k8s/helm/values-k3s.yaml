@@ -27,7 +27,13 @@ jwt:
       
 ingress:
   enabled: true
-  host: api.order-event-platform      
+  host: api.order-event-platform
+  tls:
+    enabled: true
+    secretName: order-event-platform-tls
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+    traefik.ingress.kubernetes.io/router.tls: "true"
 
 external-services:
   enabled: true

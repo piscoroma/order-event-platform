@@ -261,6 +261,16 @@ jobs:
             --namespace order-event-platform \
             --from-literal=public.pem=jwt/public.pem \
             --dry-run=client -o yaml | kubectl apply -f -
+            
+          openssl req -x509 -nodes -days 365 \
+            -newkey rsa:4096 \
+            -keyout tls.key \
+            -out tls.crt \
+            -subj "/CN=api.order-event-platform"
+          kubectl create secret tls order-event-platform-tls \
+            --cert=tls.crt \
+            --key=tls.key \
+            -n order-event-platform
 
       - name: Load images into Kind
         run: |
