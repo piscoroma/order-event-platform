@@ -29,6 +29,9 @@ env:
 
 jwt:
   mountPath: /app/certs
+  
+seed:
+  enabled: false
 
 resources:
   requests:

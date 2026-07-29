@@ -293,6 +293,7 @@ jobs:
           --set auth-service.image.tag=test 
 
       - name: Wait rollout
+        if: success()
         run: |
           for deployment in \
             order-event-platform-inventory-service \
@@ -311,20 +312,51 @@ jobs:
       - name: Show logs
         if: failure()
         run: |
-          kubectl describe pods -n order-event-platform
-          
+          echo "===================="
+          echo "PODS"
+          echo "===================="
+          kubectl get pods -n order-event-platform -o wide
+
+          echo "===================="
+          echo "EVENTS"
+          echo "===================="
+          kubectl get events \
+            -n order-event-platform \
+            --sort-by='.lastTimestamp'
+
+          echo "===================="
+          echo "DEPLOYMENT LOGS"
+          echo "===================="
+
           for deploy in \
             order-event-platform-inventory-service \
             order-event-platform-auth-service
           do
-            echo "===================="
+            echo "--------------------"
             echo "$deploy"
-            echo "===================="
+            echo "--------------------"
 
             kubectl logs \
               deployment/$deploy \
               -n order-event-platform \
               --all-containers=true || true
+          done
+
+          echo "===================="
+          echo "SEED JOB LOGS"
+          echo "===================="
+
+          for job in \
+            order-event-platform-auth-service-seed \
+            order-event-platform-inventory-service-seed
+          do
+            echo "--------------------"
+            echo "$job"
+            echo "--------------------"
+
+            kubectl logs \
+              job/$job \
+              -n order-event-platform || true
           done
 
   push:

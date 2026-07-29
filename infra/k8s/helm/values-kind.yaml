@@ -2,11 +2,17 @@ inventory-service:
   image:
     repository: inventory-service
     pullPolicy: Never
+    
+  seed:
+    enabled: true
   
 auth-service:
   image:
     repository: auth-service
     pullPolicy: Never
+  
+  seed:
+    enabled: true
 
 ingress: 
   enabled: true
