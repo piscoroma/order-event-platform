@@ -12,6 +12,7 @@ const createRequestContextMw = require('@order-event-platform/shared/middlewares
 const createErrorHandlerMw = require('@order-event-platform/shared/middlewares/error.middleware')
 const createRequestLoggerMw = require('@order-event-platform/shared/middlewares/requestLogger.middleware')
 const createHttpMetricsMw = require('@order-event-platform/shared/middlewares/metrics.middleware')
+const { loadJwtKeys } = require('@order-event-platform/shared/auth/loadJwtKeys')
 
 const { loadConfig } = require('./config/config');
 const createInventoryMetrics = require('./observability/inventory.metrics')
@@ -27,6 +28,7 @@ const container = createContainer({
 });
 
 const config = loadConfig();
+const jwtKeys = loadJwtKeys(config.jwt);
 
 container.register({
    // config
@@ -34,7 +36,10 @@ container.register({
    configMongo: asValue(config.mongo),
    configNats: asValue(config.nats),
    configLog: asValue(config.logger),
-   configJwt: asValue(config.jwt),
+   configJwt: asValue({
+      ...config.jwt,
+      ...jwtKeys
+    }),
 
    // registry
    register: asValue(createRegistry(config.serviceName)),

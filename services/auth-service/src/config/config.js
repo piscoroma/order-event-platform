@@ -1,5 +1,3 @@
-const fs = require('fs')
-
 function loadConfig() {
    return {
       serviceName: process.env.SERVICE_NAME,
@@ -20,8 +18,8 @@ function loadConfig() {
          level: process.env.LOG_LEVEL || 'info'
       },
       jwt: {
-         privateKey: fs.readFileSync(process.env.JWT_PRIVATE_KEY_PATH || './certs/private.pem', 'utf8'),
-         publicKey: fs.readFileSync(process.env.JWT_PUBLIC_KEY_PATH || './certs/public.pem', 'utf8'),
+         privateKeyPath: process.env.JWT_PRIVATE_KEY_PATH || "./certs/private.pem",
+         publicKeyPath: process.env.JWT_PUBLIC_KEY_PATH || "./certs/public.pem",
          expiresIn: process.env.JWT_EXPIRES_IN || '15m',
          issuer: process.env.JWT_ISSUER || 'order-event-platform-auth',
          audience: process.env.JWT_AUDIENCE || 'order-event-platform'
