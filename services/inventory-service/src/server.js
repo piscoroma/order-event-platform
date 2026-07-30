@@ -1,7 +1,7 @@
 require('dotenv').config();
 
 const createApp = require('./app');
-const container = require('./di_container');
+const container = require('./di_app_container');
 
 async function start() {
    const logger = container.resolve('logger');

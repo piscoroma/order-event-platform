@@ -1,6 +1,6 @@
 require('dotenv').config();
 
-const container = require('../src/di_container');
+const container = require('../src/di_seed_container');
 const { seedData } = require('../src/db/seed');
 
 async function main() {
