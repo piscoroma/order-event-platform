@@ -1,7 +1,7 @@
 const { connect } = require('@nats-io/transport-node');
 const { jetstream, jetstreamManager } = require('@nats-io/jetstream');
 
-function createNatsClient({ logger, configNats }) {
+function createNatsClient({ logger = console, configNats }) {
    const { natsUrl } = configNats;
    let nc = null;
    let js = null;
