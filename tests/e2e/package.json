@@ -1,0 +1,14 @@
+{
+   "name": "@order-event-platform/e2e-tests",
+   "private": true,
+   "scripts": {
+      "test": "playwright test"
+   },
+   "dependencies": {
+      "@order-event-platform/shared": "*"
+   },
+   "devDependencies": {
+      "@playwright/test": "^1.62.0",
+      "dotenv": "^17.2.2"
+   }
+}

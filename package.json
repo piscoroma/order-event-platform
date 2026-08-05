@@ -4,12 +4,14 @@
    "private": true,
    "workspaces": [
       "shared",
-      "services/*"
+      "services/*",
+      "tests/e2e"
    ],
    "scripts": {
       "dev": "concurrently -n auth,inventory -c blue,green \"npm run dev --workspace=@order-event-platform/auth-service\" \"npm run dev --workspace=@order-event-platform/inventory-service\"",
       "test": "npm run test --workspaces --if-present",
       "test:integration": "npm run test:integration --workspaces --if-present",
+      "test:e2e": "npm run test --workspace=@order-event-platform/e2e-tests",
       "build": "npm run build --workspaces --if-present",
       "dev:auth": "npm run dev --workspace=@order-event-platform/auth-service",
       "dev:inventory": "npm run dev --workspace=@order-event-platform/inventory-service",
