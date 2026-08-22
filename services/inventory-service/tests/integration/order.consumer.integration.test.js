@@ -1,8 +1,8 @@
 const createNatsClient = require('@order-event-platform/shared/messaging/nats');
-const createOrderConsumer = require('../src/messaging/order.consumer');
-const { startNatsContainer } = require('./utils/nats_testcontainer');
-const { mockLogger } = require('./utils/mock_logger');
-const { waitFor } = require('./utils/wait_for');
+const createOrderConsumer = require('../../src/messaging/order.consumer');
+const { startNatsContainer } = require('../utils/nats_testcontainer');
+const { mockLogger } = require('../utils/mock_logger');
+const { waitFor } = require('../utils/wait_for');
 
 describe('orderConsumer (integration)', () => {
    let container, url, natsClient, inventoryService, natsMetrics, consumer;

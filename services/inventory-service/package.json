@@ -7,9 +7,10 @@
       "start": "node src/server.js",
       "dev": "nodemon src/server.js",
       "seed": "node scripts/seed.js",
-      "test": "jest",
-      "test:watch": "jest --watch",
-      "test:integration": "jest --config jest.integration.config.js"
+      "test": "jest --config jest.config.js",
+      "test:watch": "jest --config jest.config.js --watch",
+      "test:integration": "jest --config jest.integration.config.js",
+      "test:integration:watch": "jest --config jest.integration.config.js --watch"
    },
    "dependencies": {
       "@order-event-platform/shared": "*",
@@ -24,13 +25,5 @@
       "mongodb-memory-server": "^11.0.1",
       "nodemon": "^3.1.14",
       "testcontainers": "^12.0.4"
-   },
-   "jest": {
-      "testMatch": [
-         "**/tests/**/*.test.js"
-      ],
-      "setupFilesAfterEnv": [
-         "./tests/setup.js"
-      ]
    }
 }
