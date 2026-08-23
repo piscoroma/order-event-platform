@@ -2,7 +2,7 @@
    "name": "@order-event-platform/e2e-tests",
    "private": true,
    "scripts": {
-      "test": "playwright test"
+      "test:e2e": "playwright test"
    },
    "dependencies": {
       "@order-event-platform/shared": "*"

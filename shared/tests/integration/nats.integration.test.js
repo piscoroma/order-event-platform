@@ -1,4 +1,4 @@
-const createNatsClient = require('../../messaging/nats'); // adegua il path
+const createNatsClient = require('../../messaging/nats');
 const { startNatsContainer } = require('../utils/nats_testcontainer');
 const { mockLogger } = require('../utils/mock_logger');
 

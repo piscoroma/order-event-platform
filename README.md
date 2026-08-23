@@ -1,4 +1,5 @@
 # order-event-platform
 
-eseguire i test su tutti i microservizi:
+execute all tests on all microservices:
 npm run test --workspaces --if-present
+NB: Integration tests require Docker to be executed.
