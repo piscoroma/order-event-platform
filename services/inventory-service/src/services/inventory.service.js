@@ -1,12 +1,11 @@
-const mongoose = require('mongoose');
-
 const { NotFoundError, ValidationError } = require('@order-event-platform/shared/errors/base.errors');
 
 const Item = require('../models/item.model');
 const OrderProcessingState = require('../models/order-processing-state.model');
 const { InsufficientStockError, AlreadyProcessingError } = require('../errors/inventory.errors');
+const { mongoRetryWithTransaction } = require('../mongo/mongo-retry');
 
-function createInventoryService({ logger, inventoryMetrics}) {
+function createInventoryService({ logger, inventoryMetrics }) {
 
    const {inventoryReservationsTotal, inventoryReleasesTotal} = inventoryMetrics;
 
@@ -21,77 +20,123 @@ function createInventoryService({ logger, inventoryMetrics}) {
    }
 
    async function reserveItems(items) {
-      const session = await mongoose.startSession();
-      session.startTransaction();
-
-      try {
-         let totalAmount = 0;
-         const reserved = [];
-
-         for (const { itemId, quantity } of items) {
-            if (!itemId || quantity < 1) {
-               throw new ValidationError(`Invalid item entry: ${itemId}`);
-            }
-
-            const item = await Item.findById(itemId).session(session);
-            if (!item) throw new NotFoundError('Item', itemId);
-            if (item.stock < quantity) {
-               throw new InsufficientStockError(item.name, quantity, item.stock);
-            }
-
-            item.stock -= quantity;
-            await item.save({ session });
-
-            totalAmount += item.price * quantity;
-            reserved.push({ itemId, name: item.name, quantity, unitPrice: item.price });
+      for (const { itemId, quantity } of items) {
+         if (!itemId || quantity < 1) {
+            throw new ValidationError(`Invalid item entry: ${itemId}`);
          }
+      }
+      
+      try {
+         const result = await mongoRetryWithTransaction(
+            async (session) => {
 
-         await session.commitTransaction();
-         inventoryReservationsTotal.inc({ status: 'success', reason: '' });
+               let totalAmount = 0;
+               const reserved = [];
 
-         logger.info('Stock reserved', { items: reserved, totalAmount });
+               for (const { itemId, quantity } of items) {
+                  
+                  const item = await Item
+                     .findById(itemId)
+                     .session(session);
+                  
+                  if (!item) 
+                     throw new NotFoundError('Item', itemId);
+                  
+                  if (item.stock < quantity) {
+                     throw new InsufficientStockError(
+                        item.name, quantity, item.stock
+                     );
+                  }
 
-         return { reserved, totalAmount: Math.round(totalAmount * 100) / 100 };
+                  item.stock -= quantity;
+
+                  await item.save({ session });
+
+                  totalAmount += item.price * quantity;
+                  
+                  reserved.push({ 
+                     itemId, 
+                     name: item.name, 
+                     quantity, 
+                     unitPrice: item.price 
+                  });
+               }
+
+               return { 
+                  reserved, 
+                  totalAmount: Math.round(totalAmount * 100) / 100 
+               };
+            }
+         );
+
+         inventoryReservationsTotal.inc({
+            status: 'success',
+            reason: ''
+         });
+
+         logger.info('Stock reserved', result);
+
+         return result;
 
       } catch (err) {
-         await session.abortTransaction();
-         logger.warn('Reservation failed', { error: err.message });
-         inventoryReservationsTotal.inc({ status: 'failed', reason: err.name });
+         inventoryReservationsTotal.inc({
+            status: 'failed',
+            reason: err.name
+         });
+
+         logger.warn('Reservation failed', {
+            error: err.message
+         });
+
          throw err;
-      } finally {
-         session.endSession();
       }
    }
 
    async function releaseItems(items) {
-      const session = await mongoose.startSession();
-      session.startTransaction();
-      try{
-         for (const { itemId, quantity } of items) {
-            if (!itemId || quantity < 1) {
-               throw new ValidationError(`Invalid item entry: ${itemId}`);
-            }
-
-            const item = await Item.findById(itemId).session(session);
-            if (!item) throw new NotFoundError('Item', itemId);
-            
-            item.stock += quantity;
-            await item.save({ session });
-
-            inventoryReleasesTotal.inc({ status: 'success', reason: '' });
+      for (const { itemId, quantity } of items) {
+         if (!itemId || quantity < 1) {
+            throw new ValidationError(`Invalid item entry: ${itemId}`);
          }
+      }
 
-         await session.commitTransaction();
+      try {
+         await mongoRetryWithTransaction(
+            async (session) => {
+
+               for (const { itemId, quantity } of items) {
+                  
+                  const item = await Item
+                     .findById(itemId)
+                     .session(session);
+                  
+                  if (!item) 
+                     throw new NotFoundError('Item', itemId);
+                  
+                  item.stock += quantity;
+                  
+                  await item.save({ session });
+               }
+            }
+         );
+
+         inventoryReleasesTotal.inc({
+            status: 'success',
+            reason: ''
+         });
 
          logger.info('Inventory released');
 
       } catch (err) {
-         await session.abortTransaction();
-         logger.warn('Inventory release failed', { error: err.message });
-         inventoryReleasesTotal.inc({ status: 'failed', reason: err.name });
+         inventoryReservationsTotal.inc({
+            status: 'failed',
+            reason: err.name
+         });
+
+         logger.warn('Reservation failed', {
+            error: err.message
+         });
+
          throw err;
-      } finally {
-         session.endSession();
       }
    }
 
