@@ -15,7 +15,7 @@ const requestLogger = ({ logger }) => (req, res, next) => {
    logger.info('Incoming request', {
       host: req.hostname,
       method: req.method,
-      path: req.path,
+      path: req.originalUrl,
       ip: req.ip
    });
 
@@ -23,7 +23,7 @@ const requestLogger = ({ logger }) => (req, res, next) => {
       logger.info('Request completed', {
          host: req.hostname,
          method: req.method,
-         path: req.path,
+         path: req.originalUrl,
          ip: req.ip,
          statusCode: res.statusCode,
          responseTimeMs: Date.now() - start
