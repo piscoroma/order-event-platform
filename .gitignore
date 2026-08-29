@@ -147,3 +147,6 @@ vite.config.ts.timestamp-*
 
 infra/k8s/helm/secrets
 infra/k8s/certs
+
+tests/e2e/playwright-report
+tests/e2e/test-results
