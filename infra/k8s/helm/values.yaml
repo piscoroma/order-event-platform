@@ -24,6 +24,9 @@ ingress:
   paths:
     auth: /auth
     inventory: /inventory
+    
+serviceMonitor:
+  enabled: true
 
 external-services:
   enabled: false

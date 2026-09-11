@@ -23,3 +23,6 @@ ingress:
   annotations:
     traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
     traefik.ingress.kubernetes.io/router.tls: "true"
+    
+serviceMonitor:
+  enabled: false
