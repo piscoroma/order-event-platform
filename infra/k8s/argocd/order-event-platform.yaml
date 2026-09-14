@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: order-event-platform
+  namespace: argocd
+spec:
+  project: default
+
+  source:
+    repoURL: git@github.com:piscoroma/order-event-platform.git
+    targetRevision: HEAD
+    path: infra/k8s/helm
+    helm:
+      valueFiles:
+        - values-k3s.yaml
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: order-event-platform
+
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: false
+    syncOptions:
+      - CreateNamespace=false
