@@ -1,13 +1,13 @@
 inventory-service:
   image:
-    tag: sha-fb1e495
+    tag: sha-d6ae4f1
     pullPolicy: IfNotPresent
 
 #  env:
 #    LOG_LEVEL: debug
 auth-service:
   image:
-    tag: sha-fb1e495
+    tag: sha-d6ae4f1
     pullPolicy: IfNotPresent
 
 #  env:
