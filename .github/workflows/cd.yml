@@ -14,6 +14,12 @@ on:
         required: false
         default: true
         type: boolean
+        
+      run_e2e:
+        description: "Run E2E tests"
+        required: false
+        default: true
+        type: boolean
 
 
 permissions:
@@ -444,18 +450,22 @@ jobs:
       # -------------------------------------------------------------------------
 
       - name: Setup Node.js
+        if: github.event_name != 'workflow_dispatch' || inputs.run_e2e
         uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
 
       - name: Install dependencies
+        if: github.event_name != 'workflow_dispatch' || inputs.run_e2e
         run: npm ci
 
       - name: Install Playwright browsers
+        if: github.event_name != 'workflow_dispatch' || inputs.run_e2e
         run: npx playwright install --with-deps chromium
 
       - name: Create E2E environment
+        if: github.event_name != 'workflow_dispatch' || inputs.run_e2e
         run: |
           cat > tests/e2e/.env.e2e <<'EOF'
           AUTH_SERVICE_URL=https://api.order-event-platform:443/auth/
@@ -465,6 +475,7 @@ jobs:
           EOF
 
       - name: Run E2E tests
+        if: github.event_name != 'workflow_dispatch' || inputs.run_e2e
         run: npm run test:e2e
 
       # -------------------------------------------------------------------------
@@ -472,7 +483,7 @@ jobs:
       # -------------------------------------------------------------------------
 
       - name: Upload Playwright report
-        if: always()
+        if: always() && (github.event_name != 'workflow_dispatch' || inputs.run_e2e)
         uses: actions/upload-artifact@v7
         with:
           name: playwright-report
@@ -480,7 +491,7 @@ jobs:
           retention-days: 7
       
       - name: Upload Playwright test results
-        if: always()
+        if: always() && (github.event_name != 'workflow_dispatch' || inputs.run_e2e)
         uses: actions/upload-artifact@v7
         with:
           name: playwright-test-results
