@@ -1,14 +1,13 @@
 inventory-service:
   image:
-    tag: sha-...
+    tag: sha-fb1e495
     pullPolicy: IfNotPresent
 
 #  env:
 #    LOG_LEVEL: debug
-  
 auth-service:
   image:
-    tag: sha-...
+    tag: sha-fb1e495
     pullPolicy: IfNotPresent
 
 #  env:
@@ -22,7 +21,7 @@ jwt:
       MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEv3FnduktqWRsra4XQH5eFc+7ahXS
       h2oMXSLC4y06xvKZZ+UKA2nQ0qXj+6uDl9vqy9Blrbse16SLTGnoxpJwdQ==
       -----END PUBLIC KEY-----
-      
+
 ingress:
   enabled: true
   host: api.order-event-platform
@@ -42,6 +41,6 @@ external-services:
     host: 192.168.1.175
     clientPort: 4222
     monitorPort: 8222
-    
+
 test-dependencies:
   enabled: false
