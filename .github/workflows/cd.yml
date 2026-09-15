@@ -241,7 +241,7 @@ jobs:
         run: |
           kubectl create configmap jwt-public-key \
             --namespace order-event-platform \
-            --from-literal=public.pem=jwt/public.pem \
+            --from-file=public.pem=jwt/public.pem \
             --dry-run=client -o yaml | kubectl apply -f -
       
       # -------------------------------------------------------------------------
