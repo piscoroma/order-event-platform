@@ -20,7 +20,7 @@ spec:
 
   syncPolicy:
     automated:
-      prune: false
+      prune: true
       selfHeal: false
     syncOptions:
       - CreateNamespace=false
