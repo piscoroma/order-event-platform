@@ -8,6 +8,12 @@ on:
 #  pull_request:
 
   workflow_dispatch:
+    inputs:
+      force_image_build:
+        description: "Force Docker image builds"
+        required: false
+        default: true
+        type: boolean
 
 
 permissions:
@@ -68,11 +74,11 @@ jobs:
         uses: actions/checkout@v6
       
       - name: Set up Docker Buildx
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || github.event_name == 'workflow_dispatch'
+        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || inputs.force_image_build
         uses: docker/setup-buildx-action@v4
             
       - name: Build image
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || github.event_name == 'workflow_dispatch'
+        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || inputs.force_image_build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -90,14 +96,14 @@ jobs:
           cache-to: type=gha,mode=max
           
       - name: Save Docker image
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || github.event_name == 'workflow_dispatch'
+        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || inputs.force_image_build
         run: |
           docker save \
             -o ${{ matrix.service }}.tar \
             ${{ matrix.service }}:test
 
       - name: Upload Docker image
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || github.event_name == 'workflow_dispatch'
+        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || inputs.force_image_build
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.service }}-image
