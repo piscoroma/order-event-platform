@@ -1,10 +1,11 @@
-name: CI/CD
-
+name: CD
 
 on:
 #  push:
 #    branches:
 #      - main
+
+#  pull_request:
 
   workflow_dispatch:
 
@@ -18,66 +19,8 @@ env:
   IMAGE_TAG: test
   
 jobs:
-
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run lint
-        run: npm run lint
-       
-  unit-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run unit tests
-        run: npm test
-        
-  integration-test:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run integration tests
-        run: npm run test:integration
         
   changes:
-    needs:
-      - lint
-      - unit-test
-      - integration-test
     runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.filter.outputs.changes }}
@@ -160,39 +103,8 @@ jobs:
           name: ${{ matrix.service }}-image
           path: ${{ matrix.service }}.tar
           
-  helm-validation:
-    needs: build
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Install Helm
-        uses: azure/setup-helm@v5
-
-      - name: Validate Helm charts
-        run: |
-          helm dependency update infra/k8s/helm
-
-          echo "===> Lint umbrella"
-          helm lint \
-            infra/k8s/helm \
-            -f infra/k8s/helm/values-kind.yaml
-  
-          echo "===> Lint inventory-service"
-          helm lint infra/k8s/helm/charts/inventory-service
-
-          echo "===> Lint auth-service"
-          helm lint infra/k8s/helm/charts/auth-service
-
-          echo "===> Render umbrella"
-          helm template \
-            order-event-platform \
-            infra/k8s/helm \
-            -f infra/k8s/helm/values-kind.yaml > /dev/null
             
-  helm-smoke-test:
+  kind-test:
     needs: 
       - build
       - helm-validation
@@ -482,7 +394,7 @@ jobs:
 
   push-images:
     needs:
-      - helm-smoke-test
+      - kind-test
       - changes
     runs-on: ubuntu-latest
     permissions:
