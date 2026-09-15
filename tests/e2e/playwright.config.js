@@ -1,28 +1,35 @@
 const path = require("path");
 
 require("dotenv").config({
-  path: path.join(__dirname, ".env.e2e")
+   path: path.join(__dirname, ".env.e2e")
 });
 
 const { defineConfig } = require("@playwright/test");
 
 module.exports = defineConfig({
-  testDir: "./specs",
+   testDir: "./specs",
 
-  //globalSetup: "./globalSetup.js",
+   use: {
+      ignoreHTTPSErrors: process.env.IGNORE_TLS_ERRORS === "true",
+      trace: "retain-on-failure",
+      screenshot: "only-on-failure",
+      video: "retain-on-failure"
+   },
 
-  timeout: 30_000,
+   //globalSetup: "./globalSetup.js",
 
-  expect: {
-    timeout: 5_000
-  },
+   timeout: 30_000,
 
-  fullyParallel: false,
-  workers: 1,
+   expect: {
+      timeout: 5_000
+   },
 
-  retries: process.env.CI ? 2 : 0,
+   fullyParallel: false,
+   workers: 1,
 
-  reporter: process.env.CI
-    ? [["github"], ["html"]]
-    : [["list"], ["html"]]
+   retries: process.env.CI ? 2 : 0,
+
+   reporter: process.env.CI
+      ? [["github"], ["html"]]
+      : [["list"], ["html"]]
 });
