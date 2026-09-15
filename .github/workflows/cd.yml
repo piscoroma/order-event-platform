@@ -107,7 +107,6 @@ jobs:
   kind-test:
     needs: 
       - build
-      - helm-validation
     runs-on: ubuntu-latest
     
     env:
@@ -153,6 +152,9 @@ jobs:
           nodes:
             - role: control-plane
               extraPortMappings:
+                - containerPort: 80
+                  hostPort: 80
+                  protocol: TCP
                 - containerPort: 443
                   hostPort: 443
                   protocol: TCP
@@ -163,6 +165,43 @@ jobs:
         with:
           cluster_name: smoke-test
           config: /tmp/kind-config.yaml
+          
+      - name: Install Traefik
+        run: |
+          helm repo add traefik https://traefik.github.io/charts
+          helm repo update
+
+          helm upgrade --install traefik traefik/traefik \
+            --namespace traefik \
+            --create-namespace \
+            --set ports.web.hostPort=80 \
+            --set ports.websecure.hostPort=443 \
+            --set service.type=ClusterIP
+            
+      - name: Wait for Traefik
+        run: |
+          kubectl wait \
+            --namespace traefik \
+            --for=condition=ready pod \
+            -l app.kubernetes.io/name=traefik \
+            --timeout=120s
+          
+      - name: Verify Kind cluster
+        run: |
+          echo "=== KUBECONFIG ==="
+          echo "$KUBECONFIG"
+
+          echo "=== CONTEXTS ==="
+          kubectl config get-contexts
+
+          echo "=== CURRENT CONTEXT ==="
+          kubectl config current-context
+
+          echo "=== CLUSTER INFO ==="
+          kubectl cluster-info
+
+          echo "=== NODES ==="
+          kubectl get nodes -o wide
 
       - name: Configure E2E hostname
         run: |
@@ -273,6 +312,28 @@ jobs:
               --timeout=120s
           done
 
+      - name: Inspect Traefik
+        run: |
+          echo "=== TRAEFIK PODS ==="
+          kubectl get pods -A -l app.kubernetes.io/name=traefik -o wide
+
+          echo
+          echo "=== TRAEFIK SERVICES ==="
+          kubectl get svc -A -l app.kubernetes.io/name=traefik -o wide
+
+          echo
+          echo "=== TRAEFIK DAEMONSETS ==="
+          kubectl get daemonset -A -l app.kubernetes.io/name=traefik -o wide
+
+          echo
+          echo "=== TRAEFIK DEPLOYMENTS ==="
+          kubectl get deployment -A -l app.kubernetes.io/name=traefik -o wide
+
+          echo
+          echo "=== TRAEFIK POD YAML ==="
+          kubectl get pods -A -l app.kubernetes.io/name=traefik \
+            -o yaml
+      
       - name: Show resources
         if: always()
         run: |
@@ -344,6 +405,34 @@ jobs:
 
           cat /tmp/nats-port-forward.log
 
+      - name: Verify ingress connectivity
+        run: |
+          echo "=== TRAEFIK PODS ==="
+          kubectl get pods -A -l app.kubernetes.io/name=traefik -o wide || true
+
+          echo
+          echo "=== TRAEFIK SERVICES ==="
+          kubectl get svc -A -l app.kubernetes.io/name=traefik -o wide || true
+
+          echo
+          echo "=== INGRESS ==="
+          kubectl get ingress -n order-event-platform -o wide
+
+          echo
+          echo "=== DNS ==="
+          getent hosts api.order-event-platform || true
+
+          echo
+          echo "=== PORT 443 ==="
+          nc -vz api.order-event-platform 443 || true
+
+          echo
+          echo "=== HTTPS ==="
+          curl -vk \
+            --connect-timeout 5 \
+            https://api.order-event-platform/auth/login \
+            || true
+      
       # -------------------------------------------------------------------------
       # Node.js / E2E
       # -------------------------------------------------------------------------
