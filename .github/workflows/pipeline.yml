@@ -359,7 +359,7 @@ jobs:
               -n order-event-platform || true
           done
 
-  push:
+  push-images:
     needs:
       - helm-smoke-test
       - changes
@@ -400,7 +400,6 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}
           tags: |
-            type=raw,value=latest
             type=sha
 
       - name: Tag image
@@ -417,5 +416,92 @@ jobs:
             docker push "$tag"
           done <<< "${{ steps.meta.outputs.tags }}"
 
+  update-manifests:
+    needs:
+      - push-images
+      - changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install Python dependencies
+        run: pip install ruamel.yaml
+
+      - name: Update image tags
+        env:
+          SERVICES: ${{ needs.changes.outputs.services }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          
+          from ruamel.yaml import YAML
+
+
+          VALUES_FILE = Path("infra/k8s/helm/values-k3s.yaml")
+
+          yaml = YAML()
+          yaml.preserve_quotes = True
+          yaml.width = 4096
+
+          services = json.loads(os.environ["SERVICES"])
+
+          if os.environ["EVENT_NAME"] == "workflow_dispatch":
+            services = [
+              "auth-service",
+              "inventory-service",
+            ]
+
+          image_tag = f"sha-{os.environ['GITHUB_SHA'][:7]}"
+
+          print(f"Services to update: {services}")
+          print(f"New image tag: {image_tag}")
+
+          with VALUES_FILE.open("r", encoding="utf-8") as file:
+              values = yaml.load(file)
+
+          for service in services:
+            if service not in values:
+              print(f"Service not found: {service}")
+              continue
+
+            print(f"Updating {service} to {image_tag}")
+
+            values[service]["image"]["tag"] = image_tag
+            values[service]["image"]["pullPolicy"] = "IfNotPresent"
+
+          with VALUES_FILE.open("w", encoding="utf-8") as file:
+              yaml.dump(values, file)
+          PY
+
+      - name: Show changes
+        run: |
+          git diff -- infra/k8s/helm/values-k3s.yaml
+
+      - name: Commit and push manifests
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add infra/k8s/helm/values-k3s.yaml
+
+          if git diff --cached --quiet; then
+            echo "No manifest changes to commit"
+            exit 0
+          fi
+
+          git commit -m "chore(deploy): update image tags [skip ci]"
+          git push
+
+
+   
 
 

@@ -1,17 +1,15 @@
-#inventory-service:
-#  image:
-#    repository: inventory-service
-#    tag: test
-#    pullPolicy: Never
+inventory-service:
+  image:
+    tag: sha-...
+    pullPolicy: IfNotPresent
 
 #  env:
 #    LOG_LEVEL: debug
   
-#auth-service:
-#  image:
-#    repository: auth-service
-#    tag: test
-#    pullPolicy: Never
+auth-service:
+  image:
+    tag: sha-...
+    pullPolicy: IfNotPresent
 
 #  env:
 #    LOG_LEVEL: debug
