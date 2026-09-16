@@ -12,7 +12,7 @@ on:
       force_image_build:
         description: "Force Docker image builds"
         required: false
-        default: true
+        default: false
         type: boolean
         
       run_e2e:
@@ -28,14 +28,24 @@ permissions:
   actions: read
   
 env:
-  IMAGE_TAG: test
+  # Add new microservices here.
+  # The rest of the pipeline will use this list automatically.
+  SERVICES: '["inventory-service", "auth-service"]'
   
 jobs:
         
+  # ===========================================================================
+  # Detect changes
+  # ===========================================================================
+
   changes:
     runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.filter.outputs.changes }}
+      services_to_build: ${{ steps.build-list.outputs.services }}
+      build_matrix: ${{ steps.build-list.outputs.matrix }}
+      has_services: ${{ steps.build-list.outputs.has_services }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -65,26 +75,60 @@ jobs:
       - name: Show changed services
         run: |
           echo "Changed services: ${{ steps.filter.outputs.changes }}"
+          
+      - name: Determine services to build
+        id: build-list
+        env:
+          CHANGED_SERVICES: ${{ steps.filter.outputs.changes }}
+          FORCE_IMAGE_BUILD: ${{ inputs.force_image_build || false }}
+          ALL_SERVICES: ${{ env.SERVICES }}
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+
+          changed_services = json.loads(os.environ["CHANGED_SERVICES"])
+          all_services = json.loads(os.environ["ALL_SERVICES"])
+          force_image_build = os.environ["FORCE_IMAGE_BUILD"].lower() == "true"
+
+          if force_image_build:
+            services = all_services
+          else:
+            services = changed_services
+              
+          matrix = {
+            "service": services
+          }
+          
+          print(f"Force image build: {force_image_build}")
+          print(f"Services to build: {services}")
+          print(f"Build matrix: {matrix}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"services={json.dumps(services)}\n")
+              output.write(f"matrix={json.dumps(matrix)}\n")
+              output.write(f"has_services={str(bool(services)).lower()}\n")
+          PY
   
+  # ===========================================================================
+  # Build Docker images
+  # ===========================================================================
+
   build:
-    needs: changes
+    needs: changes    
+    if: ${{ needs.changes.outputs.has_services == 'true' }}
     runs-on: ubuntu-latest
     strategy:
-      matrix:
-        include:
-          - service: inventory-service
-          - service: auth-service
-            
+      matrix: ${{ fromJson(needs.changes.outputs.build_matrix) }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
       
       - name: Set up Docker Buildx
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || inputs.force_image_build
         uses: docker/setup-buildx-action@v4
             
       - name: Build image
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || inputs.force_image_build
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -96,29 +140,46 @@ jobs:
           push: false
           load: true
           
-          tags: ${{ matrix.service }}:${{ env.IMAGE_TAG }}
+          # "test" is a temporary local tag used only by the CD pipeline.
+          tags: ${{ matrix.service }}:test
 
           cache-from: type=gha
           cache-to: type=gha,mode=max
           
       - name: Save Docker image
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || inputs.force_image_build
         run: |
           docker save \
             -o ${{ matrix.service }}.tar \
             ${{ matrix.service }}:test
 
       - name: Upload Docker image
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || inputs.force_image_build
         uses: actions/upload-artifact@v7
         with:
           name: ${{ matrix.service }}-image
           path: ${{ matrix.service }}.tar
           
             
+  # ===========================================================================
+  # Kind / integration / E2E tests
+  # ===========================================================================
+  
   kind-test:
     needs: 
+      - changes
       - build
+    
+    # Run also when build is skipped because there are no changed services.
+    # In that case the test environment uses the images currently referenced
+    # by values-k3s.yaml.
+    if: >-
+      ${{
+        always() &&
+        (
+          needs.build.result == 'success' ||
+          needs.build.result == 'skipped'
+        )
+      }}
+    
     runs-on: ubuntu-latest
     
     env:
@@ -134,28 +195,95 @@ jobs:
       # -------------------------------------------------------------------------
       # Docker images
       # -------------------------------------------------------------------------
-
-      - name: Download inventory-service image
-        uses: actions/download-artifact@v8
-        with:
-          name: inventory-service-image
-          path: /tmp/inventory-service
-
-      - name: Download auth-service image
-        uses: actions/download-artifact@v8
-        with:
-          name: auth-service-image
-          path: /tmp/auth-service
-
-      - name: Load Docker image
+          
+      - name: Install Python dependencies
         run: |
-          docker load -i /tmp/inventory-service/inventory-service.tar
-          docker load -i /tmp/auth-service/auth-service.tar
+          pip install ruamel.yaml
+
+      - name: Download built Docker images
+        if: ${{ needs.changes.outputs.has_services == 'true' }}
+        uses: actions/download-artifact@v8
+        with:
+          path: /tmp/images
+
+      - name: Login to GHCR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare image configuration
+        env:
+          ALL_SERVICES: ${{ env.SERVICES }}
+          SERVICES_TO_BUILD: ${{ needs.changes.outputs.services_to_build }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          python3 <<'PY'
+          import json
+          import os
+
+          from ruamel.yaml import YAML
+
+
+          all_services = json.loads(os.environ["ALL_SERVICES"])
+          services_to_build = set(json.loads(os.environ["SERVICES_TO_BUILD"]))
+          owner = os.environ["GITHUB_REPOSITORY_OWNER"]
+
+          yaml = YAML()
+
+          with open(
+              "infra/k8s/helm/values-k3s.yaml", "r", encoding="utf-8",
+          ) as file:
+              values = yaml.load(file)
+
+          image_config = {}
+
+          for service in all_services:
+              if service in services_to_build:
+                  repository = service
+                  tag = "test"
+                  build = True
+                  print(f"{service}: using local image {repository}:{tag}")
+                  
+              else:
+                  repository = f"ghcr.io/{owner}/{service}"
+                  tag = values[service]["image"]["tag"]
+                  build = False
+                  print(f"{service}: using existing image {repository}:{tag}")
+
+              image_config[service] = {
+                  "repository": repository,
+                  "tag": tag,
+                  "build": build,
+              }
+
+          with open(
+              "/tmp/image-config.json", "w", encoding="utf-8",
+          ) as file:
+              json.dump(image_config, file, indent=2)
+
+          # Generate Helm arguments dynamically.
+          with open(
+              "/tmp/helm-image-args", "w", encoding="utf-8",
+          ) as file:
+              for service, config in image_config.items():
+                  prefix = f"{service}.image"
+                  file.write("--set-string\n")
+                  file.write(f"{prefix}.repository={config['repository']}\n")
+                  file.write("--set-string\n")
+                  file.write("{prefix}.tag={config['tag']}\n")
+                  file.write("--set-string\n")
+                  file.write(f"{prefix}.pullPolicy=IfNotPresent\n")
+          PY
+
+          echo "Image configuration:"
+          cat /tmp/image-config.json
 
       # -------------------------------------------------------------------------
       # Kind
       # -------------------------------------------------------------------------
-
+      
       - name: Create Kind configuration
         run: |
           cat > /tmp/kind-config.yaml <<'EOF'
@@ -178,6 +306,72 @@ jobs:
           cluster_name: smoke-test
           config: /tmp/kind-config.yaml
           
+      - name: Configure E2E hostname
+        run: |
+          echo "127.0.0.1 api.order-event-platform" | sudo tee -a /etc/hosts
+          
+      # -------------------------------------------------------------------------
+      # Load Docker images into Kind
+      # -------------------------------------------------------------------------
+      
+      - name: Load Docker images
+        env:
+          ALL_SERVICES: ${{ env.SERVICES }}
+        run: |
+          python3 <<'PY'
+          import json
+          import subprocess
+          import os
+
+
+          all_services = json.loads(os.environ["ALL_SERVICES"])
+
+          with open(
+            "/tmp/image-config.json", "r", encoding="utf-8",
+          ) as file:
+              image_config = json.load(file)
+
+          for service in all_services:
+              config = image_config[service]
+
+              repository = config["repository"]
+              tag = config["tag"]
+              image = f"{repository}:{tag}"
+
+              if config["build"]:
+                  image_tar = f"/tmp/images/{service}-image/{service}.tar"
+                  print(f"Loading locally built image: {image}")
+                  subprocess.run(
+                      ["docker", "load", "-i", image_tar],
+                      check=True,
+                  )
+
+              else:
+                  print(f"Pulling existing image: {image}")
+                  subprocess.run(
+                      ["docker", "pull", image],
+                      check=True,
+                  )
+
+              print(f"Loading image into Kind: {image}")
+
+              subprocess.run(
+                  [
+                      "kind",
+                      "load",
+                      "docker-image",
+                      image,
+                      "--name",
+                      "smoke-test",
+                  ],
+                  check=True,
+              )
+          PY
+
+      # -------------------------------------------------------------------------
+      # Traefik
+      # -------------------------------------------------------------------------
+          
       - name: Install Traefik
         run: |
           helm repo add traefik https://traefik.github.io/charts
@@ -197,10 +391,6 @@ jobs:
             --for=condition=ready pod \
             -l app.kubernetes.io/name=traefik \
             --timeout=120s
-
-      - name: Configure E2E hostname
-        run: |
-          echo "127.0.0.1 api.order-event-platform" | sudo tee -a /etc/hosts
 
       # -------------------------------------------------------------------------
       # Kubernetes secrets
@@ -264,15 +454,6 @@ jobs:
             -n order-event-platform
 
       # -------------------------------------------------------------------------
-      # Load images into Kind
-      # -------------------------------------------------------------------------
-
-      - name: Load images into Kind
-        run: |
-          kind load docker-image inventory-service:${{ env.IMAGE_TAG }} --name smoke-test
-          kind load docker-image auth-service:${{ env.IMAGE_TAG }} --name smoke-test
-
-      # -------------------------------------------------------------------------
       # Helm
       # -------------------------------------------------------------------------
 
@@ -283,13 +464,14 @@ jobs:
         run: |
           helm dependency update infra/k8s/helm
           
+          mapfile -t IMAGE_ARGS < /tmp/helm-image-args
+          
           helm upgrade --install \
           order-event-platform \
           infra/k8s/helm \
           --namespace order-event-platform \
           -f infra/k8s/helm/values-kind.yaml \
-          --set inventory-service.image.tag=test \
-          --set auth-service.image.tag=test 
+          "${IMAGE_ARGS[@]}"
 
       # -------------------------------------------------------------------------
       # Wait for deployment
@@ -297,12 +479,14 @@ jobs:
 
       - name: Wait rollout
         if: success()
+        env:
+          ALL_SERVICES: ${{ env.SERVICES }}
         run: |
-          for deployment in \
-            order-event-platform-inventory-service \
-            order-event-platform-auth-service
-          do
-            kubectl rollout status deployment/$deployment \
+          for service in $(echo "$ALL_SERVICES" | jq -r '.[]'); do
+            deployment="order-event-platform-${service}"
+
+            kubectl rollout status \
+              "deployment/${deployment}" \
               -n order-event-platform \
               --timeout=120s
           done
@@ -314,6 +498,8 @@ jobs:
 
       - name: Show logs
         if: failure()
+        env:
+          ALL_SERVICES: ${{ env.SERVICES }}
         run: |
           echo "===================="
           echo "PODS"
@@ -331,16 +517,15 @@ jobs:
           echo "DEPLOYMENT LOGS"
           echo "===================="
 
-          for deploy in \
-            order-event-platform-inventory-service \
-            order-event-platform-auth-service
-          do
+          for service in $(echo "$ALL_SERVICES" | jq -r '.[]'); do
+            deploy="order-event-platform-${service}"
+            
             echo "--------------------"
             echo "$deploy"
             echo "--------------------"
 
             kubectl logs \
-              deployment/$deploy \
+              deployment/${deploy} \
               -n order-event-platform \
               --all-containers=true || true
           done
@@ -349,16 +534,15 @@ jobs:
           echo "SEED JOB LOGS"
           echo "===================="
 
-          for job in \
-            order-event-platform-auth-service-seed \
-            order-event-platform-inventory-service-seed
-          do
+          for service in $(echo "$ALL_SERVICES" | jq -r '.[]'); do
+            job="order-event-platform-${service}-seed"
+            
             echo "--------------------"
             echo "$job"
             echo "--------------------"
 
             kubectl logs \
-              job/$job \
+              job/${job} \
               -n order-event-platform || true
           done
 
@@ -435,30 +619,25 @@ jobs:
     needs:
       - kind-test
       - changes
+    if: ${{ needs.changes.outputs.has_services == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     strategy:
-      matrix:
-        include:
-          - service: inventory-service
-          - service: auth-service
+      matrix: ${{ fromJson(needs.changes.outputs.build_matrix) }}
 
     steps:
       - name: Download Docker image
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || github.event_name == 'workflow_dispatch'
         uses: actions/download-artifact@v8
         with:
           name: ${{ matrix.service }}-image
 
       - name: Load Docker image
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || github.event_name == 'workflow_dispatch'
         run: |
           docker load -i ${{ matrix.service }}.tar
 
       - name: Login to GHCR
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || github.event_name == 'workflow_dispatch'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -466,7 +645,6 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Docker metadata
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || github.event_name == 'workflow_dispatch'
         id: meta
         uses: docker/metadata-action@v6
         with:
@@ -475,23 +653,26 @@ jobs:
             type=sha
 
       - name: Tag image
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || github.event_name == 'workflow_dispatch'
         run: |
           while IFS= read -r tag; do
-            docker tag ${{ matrix.service }}:${{ env.IMAGE_TAG }} "$tag"
+            docker tag ${{ matrix.service }}:test "$tag"
           done <<< "${{ steps.meta.outputs.tags }}"
 
       - name: Push image
-        if: contains(fromJson(needs.changes.outputs.services), matrix.service) || github.event_name == 'workflow_dispatch'
         run: |
           while IFS= read -r tag; do
             docker push "$tag"
           done <<< "${{ steps.meta.outputs.tags }}"
 
+  # ===========================================================================
+  # Update Kubernetes manifests
+  # ===========================================================================
+
   update-manifests:
     needs:
       - push-images
       - changes
+    if: ${{ needs.changes.outputs.has_services == 'true' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -507,8 +688,7 @@ jobs:
 
       - name: Update image tags
         env:
-          SERVICES: ${{ needs.changes.outputs.services }}
-          EVENT_NAME: ${{ github.event_name }}
+          SERVICES_TO_BUILD: ${{ needs.changes.outputs.services_to_build }}
         run: |
           python3 <<'PY'
           import json
@@ -524,13 +704,7 @@ jobs:
           yaml.preserve_quotes = True
           yaml.width = 4096
 
-          services = json.loads(os.environ["SERVICES"])
-
-          if os.environ["EVENT_NAME"] == "workflow_dispatch":
-            services = [
-              "auth-service",
-              "inventory-service",
-            ]
+          services = json.loads(os.environ["SERVICES_TO_BUILD"])
 
           image_tag = f"sha-{os.environ['GITHUB_SHA'][:7]}"
 
