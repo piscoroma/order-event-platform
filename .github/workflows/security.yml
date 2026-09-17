@@ -1,0 +1,104 @@
+name: Security Analysis
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/cd.yml'
+      - 'README.md'
+
+  pull_request:
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # Static Application Security Testing:
+  # Scans the source code for insecure coding patterns and
+  # potential vulnerabilities related to common CWE categories.
+  semgrep:
+    name: Semgrep - SAST
+    runs-on: ubuntu-latest
+
+    container:
+      image: semgrep/semgrep
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Run Semgrep using JavaScript security rules and generate SARIF report.
+      # The --error option makes the job fail when findings are detected.
+      - name: Run Semgrep
+        run: |
+          semgrep scan \
+            --config p/javascript \
+            --error \
+            --sarif \
+            --output semgrep-report.sarif \
+            .
+            
+      # Upload the SARIF report as a workflow artifact.
+      - name: Upload Semgrep SARIF artifact
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: semgrep-report
+          path: semgrep-report.sarif
+          if-no-files-found: warn
+
+      # Publish the same SARIF report to GitHub Code Scanning.
+      - name: Upload Semgrep SARIF to GitHub
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: semgrep-report.sarif
+
+
+  # Secret Scanning:
+  # Searches the Git repository history and current files for
+  # accidentally committed secrets such as API keys, passwords,
+  # tokens, and private keys.
+  gitleaks:
+    name: Gitleaks - Secret Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          # Fetch the complete history so Gitleaks can scan old commits too.
+          fetch-depth: 0
+
+      # Detect exposed secrets in the repository and its Git history.
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
+  # Software Composition Analysis (SCA):
+  # Checks project dependencies against known vulnerabilities
+  # reported in public vulnerability databases.
+  # This detects vulnerable third-party packages rather than
+  # vulnerabilities in our own application code.
+  osv-scanner:
+    name: OSV-Scanner - Dependency Vulnerabilities - SCA
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # Scan package-lock.json and identify dependencies with
+      # known security vulnerabilities.
+      - name: Run OSV-Scanner
+        uses: google/osv-scanner-action/osv-scanner-action@v2.6.0
+        with:
+          scan-args: |-
+            --lockfile=package-lock.json
