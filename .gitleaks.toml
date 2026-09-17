@@ -1,0 +1,4 @@
+[allowlist]
+paths = [
+  '''infra/k8s/helm/charts/auth-service/examples/jwt-private-key-secret'''
+]
