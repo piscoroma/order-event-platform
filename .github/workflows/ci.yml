@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '.github/workflows/cd.yml'
+      - '.github/workflows/security.yml'
+      - 'README.md'
       
   pull_request:
   
