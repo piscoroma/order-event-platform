@@ -1,0 +1,15 @@
+dependencies:
+- name: external-services
+  repository: file://charts/external-services
+  version: 0.1.0
+- name: test-dependencies
+  repository: file://charts/test-dependencies
+  version: 0.1.0
+- name: inventory-service
+  repository: file://charts/inventory-service
+  version: 0.1.0
+- name: auth-service
+  repository: file://charts/auth-service
+  version: 0.1.0
+digest: sha256:fbd0123a88ad8ebf580eb1803080480359d82f8a37e3800cc744510a23ef9cdb
+generated: "2026-07-24T23:35:00.810925249+02:00"

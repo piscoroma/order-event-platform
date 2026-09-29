@@ -88,21 +88,21 @@ jobs:
 
       - name: Validate Helm charts
         run: |
-          helm dependency update infra/k8s/helm
+          helm dependency update infra/k8s/platform
 
           echo "===> Lint umbrella"
           helm lint \
-            infra/k8s/helm \
-            -f infra/k8s/helm/values-kind.yaml
+            infra/k8s/platform \
+            -f infra/k8s/platform/values-kind.yaml
   
           echo "===> Lint inventory-service"
-          helm lint infra/k8s/helm/charts/inventory-service
+          helm lint infra/k8s/platform/charts/inventory-service
 
           echo "===> Lint auth-service"
-          helm lint infra/k8s/helm/charts/auth-service
+          helm lint infra/k8s/platform/charts/auth-service
 
           echo "===> Render umbrella"
           helm template \
             order-event-platform \
-            infra/k8s/helm \
-            -f infra/k8s/helm/values-kind.yaml > /dev/null
+            infra/k8s/platform \
+            -f infra/k8s/platform/values-kind.yaml > /dev/null

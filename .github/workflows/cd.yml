@@ -233,7 +233,7 @@ jobs:
           yaml = YAML()
 
           with open(
-              "infra/k8s/helm/values-k3s.yaml", "r", encoding="utf-8",
+              "infra/k8s/platform/values-k3s.yaml", "r", encoding="utf-8",
           ) as file:
               values = yaml.load(file)
 
@@ -462,15 +462,15 @@ jobs:
 
       - name: Deploy umbrella chart
         run: |
-          helm dependency update infra/k8s/helm
+          helm dependency update infra/k8s/platform
           
           mapfile -t IMAGE_ARGS < /tmp/helm-image-args
           
           helm upgrade --install \
           order-event-platform \
-          infra/k8s/helm \
+          infra/k8s/platform \
           --namespace order-event-platform \
-          -f infra/k8s/helm/values-kind.yaml \
+          -f infra/k8s/platform/values-kind.yaml \
           "${IMAGE_ARGS[@]}"
 
       # -------------------------------------------------------------------------
@@ -698,7 +698,7 @@ jobs:
           from ruamel.yaml import YAML
 
 
-          VALUES_FILE = Path("infra/k8s/helm/values-k3s.yaml")
+          VALUES_FILE = Path("infra/k8s/platform/values-k3s.yaml")
 
           yaml = YAML()
           yaml.preserve_quotes = True
@@ -730,14 +730,14 @@ jobs:
 
       - name: Show changes
         run: |
-          git diff -- infra/k8s/helm/values-k3s.yaml
+          git diff -- infra/k8s/platform/values-k3s.yaml
 
       - name: Commit and push manifests
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add infra/k8s/helm/values-k3s.yaml
+          git add infra/k8s/platform/values-k3s.yaml
 
           if git diff --cached --quiet; then
             echo "No manifest changes to commit"

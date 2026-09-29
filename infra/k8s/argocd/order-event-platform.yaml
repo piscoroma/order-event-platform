@@ -9,7 +9,7 @@ spec:
   source:
     repoURL: git@github.com:piscoroma/order-event-platform.git
     targetRevision: HEAD
-    path: infra/k8s/helm
+    path: infra/k8s/platform
     helm:
       valueFiles:
         - values-k3s.yaml
