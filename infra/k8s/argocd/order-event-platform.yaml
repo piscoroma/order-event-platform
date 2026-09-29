@@ -8,7 +8,7 @@ spec:
 
   source:
     repoURL: git@github.com:piscoroma/order-event-platform.git
-    targetRevision: HEAD
+    targetRevision: main
     path: infra/k8s/platform
     helm:
       valueFiles:
