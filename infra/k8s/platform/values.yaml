@@ -14,9 +14,9 @@ jwt:
     enabled: false
 
 ingress:
-  enabled: false
+  enabled: true
   className: traefik
-  host: ""
+  host: "api.order-event-platform"
   annotations: {}
   tls:
     enabled: false
