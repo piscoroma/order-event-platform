@@ -1,0 +1,29 @@
+mode: standalone
+
+existingSecret: minio-credentials
+
+persistence:
+  enabled: true
+  size: 20Gi
+  storageClass: local-path
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+service:
+  type: ClusterIP
+
+consoleService:
+  type: ClusterIP
+  
+consoleIngress:
+  enabled: true
+  ingressClassName: traefik
+  hosts:
+    - minio.local
+  tls: []
