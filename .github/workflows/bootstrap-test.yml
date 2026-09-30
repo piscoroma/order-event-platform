@@ -1,0 +1,192 @@
+name: Bootstrap Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  bootstrap:
+    name: Test bootstrap.sh
+    runs-on: ubuntu-latest
+
+    env:
+      MONGO_ADMIN_USER: admin
+      MONGO_ADMIN_PASSWORD: bootstrap-test-password
+
+      MONGO_HOST: 127.0.0.1
+      MONGO_PORT: 27017
+      MONGO_RS_NAME: rs0
+      MONGO_RS_HOST: 127.0.0.1:27017
+
+      NATS_HOST: 127.0.0.1
+      NATS_PORT: 4222
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      # ---------------------------------------------------------------------
+      # Tools
+      # ---------------------------------------------------------------------
+
+      - name: Install mongosh
+        run: npm install --global mongosh
+
+      - name: Install kind
+        uses: helm/kind-action@v1.14.0
+        with:
+          cluster_name: bootstrap-test
+
+      # ---------------------------------------------------------------------
+      # Infrastructure
+      # ---------------------------------------------------------------------
+
+      - name: Generate MongoDB keyfile
+        run: ./infra/local/mongo/keyfile-generator.sh
+
+      - name: Start MongoDB and NATS
+        run: |
+          docker compose \
+            -f infra/local/compose.yaml \
+            up -d
+
+      - name: Wait for MongoDB
+        run: |
+          for i in {1..30}; do
+            if mongosh \
+              "mongodb://${MONGO_ADMIN_USER}:${MONGO_ADMIN_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/admin?directConnection=true" \
+              --quiet \
+              --eval "db.adminCommand({ ping: 1 }).ok" |
+              grep -qx "1"
+            then
+              echo "MongoDB is ready."
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "MongoDB did not become ready."
+          docker compose \
+            -f infra/local/compose.yaml \
+            logs mongodb
+
+          exit 1
+
+      - name: Wait for NATS
+        run: |
+          for i in {1..30}; do
+            if curl \
+              --fail \
+              --silent \
+              http://127.0.0.1:8222/healthz \
+              >/dev/null
+            then
+              echo "NATS is ready."
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "NATS did not become ready."
+          docker compose \
+            -f infra/local/compose.yaml \
+            logs nats
+
+          exit 1
+
+      # ---------------------------------------------------------------------
+      # Bootstrap
+      # ---------------------------------------------------------------------
+
+      - name: Run bootstrap
+        run: ./bootstrap.sh
+
+      # ---------------------------------------------------------------------
+      # Verification
+      # ---------------------------------------------------------------------
+
+      - name: Verify MongoDB users
+        run: |
+          mongosh \
+            "mongodb://${MONGO_ADMIN_USER}:${MONGO_ADMIN_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/admin?directConnection=true" \
+            --quiet \
+            --eval "
+              if (!db.getSiblingDB('auth_db').getUser('auth_svc')) {
+                throw new Error('auth_svc user not found');
+              }
+
+              if (!db.getSiblingDB('inventory_db').getUser('inventory_svc')) {
+                throw new Error('inventory_svc user not found');
+              }
+
+              print('MongoDB users verified.');
+            "
+
+      - name: Verify Kubernetes secrets
+        run: |
+          kubectl get secret \
+            auth-service-db-secret \
+            -n order-event-platform
+
+          kubectl get secret \
+            inventory-service-db-secret \
+            -n order-event-platform
+
+          kubectl get secret \
+            auth-service-jwt-private-key-secret \
+            -n order-event-platform
+
+      - name: Verify JWT public key
+        run: |
+          kubectl get configmap \
+            jwt-public-key \
+            -n order-event-platform
+
+      - name: Verify db secret keys
+        run: |
+          kubectl get secret auth-service-db-secret \
+            -n order-event-platform \
+            -o jsonpath='{.data.MONGO_USERNAME}' |
+            base64 --decode |
+            grep -qx 'auth_svc'
+
+          kubectl get secret inventory-service-db-secret \
+            -n order-event-platform \
+            -o jsonpath='{.data.MONGO_USERNAME}' |
+            base64 --decode |
+            grep -qx 'inventory_svc'
+
+      - name: Verify replica set
+        run: |
+          mongosh \
+            "mongodb://${MONGO_ADMIN_USER}:${MONGO_ADMIN_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/admin?directConnection=true" \
+            --quiet \
+            --eval "
+              const status = db.adminCommand({
+                replSetGetStatus: 1
+              });
+
+              if (status.set !== 'rs0') {
+                print('Unexpected replica set.');
+                quit(1);
+              }
+
+              if (!status.members.some(m => m.stateStr === 'PRIMARY')) {
+                print('Replica set has no PRIMARY.');
+                quit(1);
+              }
+
+              print('Replica set verified.');
+            "
+
+      # ---------------------------------------------------------------------
+      # Diagnostics
+      # ---------------------------------------------------------------------
+
+      - name: Dump infrastructure logs on failure
+        if: failure()
+        run: |
+          docker compose \
+            -f infra/local/compose.yaml \
+            logs

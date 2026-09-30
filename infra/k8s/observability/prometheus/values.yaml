@@ -1,0 +1,33 @@
+grafana:
+  enabled: false
+
+prometheus:
+  prometheusSpec:
+    retention: 30d
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - prometheus.local
+    tls: []
+
+alertmanager:
+  enabled: true
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts:
+      - alertmanager.local
+    tls: []
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+kube-state-metrics:
+  metricLabelsAllowlist:
+    - pods=[app.kubernetes.io/name]
+    - deployments=[app.kubernetes.io/name]
+

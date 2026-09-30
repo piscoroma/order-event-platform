@@ -150,3 +150,7 @@ infra/k8s/certs
 
 tests/e2e/playwright-report
 tests/e2e/test-results
+
+.bootstrap-secrets/
+infra/local/.env
+infra/local/mongo/mongo-keyfile

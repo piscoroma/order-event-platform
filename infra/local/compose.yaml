@@ -1,0 +1,75 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    command:
+      - mongod
+      - --replSet
+      - rs0
+      - --auth
+      - --bind_ip_all
+      - --keyFile
+      - /etc/mongo-keyfile
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ADMIN_USER:?MONGO_ADMIN_USER is required}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ADMIN_PASSWORD:?MONGO_ADMIN_PASSWORD is required}
+    volumes:
+      - mongodb-data:/data/db
+      - ./mongo/mongo-keyfile:/etc/mongo-keyfile:ro
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--username",
+          "admin",
+          "--password",
+          "qwe123",
+          "--authenticationDatabase",
+          "admin",
+          "--eval",
+          "db.adminCommand('ping')"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - infra
+
+  nats:
+    image: nats:2.10-alpine
+    command:
+      - "-js"
+      - "-sd"
+      - "/data"
+      - "-m"
+      - "8222"
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - nats-data:/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "-qO-",
+          "http://localhost:8222/healthz"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - infra
+
+volumes:
+  mongodb-data:
+  nats-data:
+
+networks:
+  infra:
+    name: order-event-platform-infra
